@@ -47,11 +47,7 @@ public class RobotContainer {
         .applyRequest(() -> point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))));
 
     // reset the field-centric heading on left bumper press
-    joystick.leftBumper().onTrue(
-            Commands.parallel(
-            drivetrain.runOnce(() -> drivetrain.seedFieldRelative()),
-                    Commands.print("left bumper pressed"))
-    );
+    joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView));
 
     if (Utils.isSimulation()) {
       drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));

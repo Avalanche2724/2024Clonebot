@@ -8,6 +8,7 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -79,5 +80,13 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
                 hasAppliedOperatorPerspective = true;
             });
         }
+    }
+
+    public void resetGyroToForwardFromOperatorPointOfView() {
+        var currentLocation = getState().Pose;
+        var newLocation = new Pose2d(currentLocation.getTranslation(),
+                DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Blue
+                        ? Rotation2d.fromDegrees(0) : Rotation2d.fromDegrees(180));
+        seedFieldRelative(newLocation);
     }
 }
