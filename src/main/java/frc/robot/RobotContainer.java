@@ -5,14 +5,19 @@
 package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
+import frc.robot.subsystems.Indexer;
+import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 
 public class RobotContainer {
@@ -37,6 +42,10 @@ public class RobotContainer {
   private final Telemetry logger = new Telemetry(MaxSpeed);
 
   private final Shooter shooter = new Shooter();
+  private final Indexer indexer = new Indexer();
+  private final Intake intake = new Intake();
+
+  private Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
 
   private void configureBindings() {
     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
@@ -52,30 +61,48 @@ public class RobotContainer {
                             * MaxAngularRate) // Drive counterclockwise with negative X (left)
             ));
 
-    /*joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
+    // Driver bindings:
+    // Start button: Eject
+    joystick.start().whileTrue(indexer.ejectCmd().alongWith(intake.ejectCmd()));
+    // Back button: Recenter gyro
     joystick
-        .b()
-        .whileTrue(
-            drivetrain.applyRequest(
-                () ->
-                    point.withModuleDirection(
-                        new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))));
-
-    // reset the field-centric heading on left bumper press
-    joystick
-        .leftBumper()
+        .back()
         .onTrue(drivetrain.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView));
 
-    if (Utils.isSimulation()) {
-      drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
-    }
-    drivetrain.registerTelemetry(logger::telemeterize);*/
+    // Left bumper: Intake
+    joystick
+        .leftBumper()
+        .whileTrue(
+            intake.intakeCmd().alongWith(indexer.feedCmd()).until(indexer.bothSensorsTriggered));
+    // Right bumper: Shoot
+    // joystick.rightBumper().whileTrue()
+    // A AMP
+    joystick
+        .a()
+        .onTrue(
+            Commands.runOnce(
+                () -> {
+                  plannedShootSpeed = Shooter.ShootingSpeed.AMP;
+                }));
+    // B: Shooter
+    joystick
+        .b()
+        .onTrue(
+            Commands.runOnce(
+                () -> {
+                  plannedShootSpeed = Shooter.ShootingSpeed.SUBWOOFER;
+                }));
   }
 
   public RobotContainer() {
     configureBindings();
 
     configureSysIDBindings();
+
+    if (Utils.isSimulation()) {
+      drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
+    }
+    drivetrain.registerTelemetry(logger::telemeterize);
   }
 
   public Command getAutonomousCommand() {
@@ -96,9 +123,9 @@ public class RobotContainer {
      * Joystick B = dynamic forward
      * Joystick X = dynamic reverse
      */
-    joystick.y().whileTrue(m_mechanism.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+    /*joystick.y().whileTrue(m_mechanism.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
     joystick.a().whileTrue(m_mechanism.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
     joystick.b().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    joystick.x().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+    joystick.x().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kReverse));*/
   }
 }

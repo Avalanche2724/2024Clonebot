@@ -168,5 +168,6 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
       return RoutineToApply.dynamic(direction);
     }
   }
+
   public SysIdStuff sysId = new SysIdStuff();
 }

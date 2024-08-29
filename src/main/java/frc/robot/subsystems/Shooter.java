@@ -2,7 +2,6 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.Volts;
 
-import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
@@ -14,7 +13,6 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Voltage;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
@@ -35,7 +33,7 @@ public class Shooter extends SubsystemBase {
   private final TalonFX bottomMotor;
   private final VelocityVoltage controlTop;
   private final VelocityVoltage controlBottom;
-  
+
   public enum ShootingSpeed {
     AMP(new Speeds(350, 950)),
     SUBWOOFER(new Speeds(1400, 2800));
@@ -47,6 +45,8 @@ public class Shooter extends SubsystemBase {
     ShootingSpeed(Speeds speeds) {}
   }
 
+  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = 50;
+
   public Shooter() {
     topMotor = new TalonFX(TALONFX_ID_TOP);
     bottomMotor = new TalonFX(TALONFX_ID_BOTTOM);
@@ -55,7 +55,6 @@ public class Shooter extends SubsystemBase {
     controlTop = new VelocityVoltage(0).withSlot(0);
     controlBottom = new VelocityVoltage(0).withSlot(0);
     setDefaultCommand(stopCmd());
-
   }
 
   private void motorStop() {
@@ -65,7 +64,16 @@ public class Shooter extends SubsystemBase {
     bottomMotor.set(0);
   }
 
+  // private ShootingSpeed.Speeds targetSpeeds; // unused, remove later
+
+  private boolean atDesiredSpeeds() {
+    return Math.abs(topMotor.getClosedLoopError().getValueAsDouble()) < CLOSED_LOOP_ALLOWABLE_ERROR
+        && Math.abs(bottomMotor.getClosedLoopError().getValueAsDouble())
+            < CLOSED_LOOP_ALLOWABLE_ERROR;
+  }
+
   private void runWithSpeed(ShootingSpeed.Speeds speed) {
+    // targetSpeeds = speed;
     topMotor.setControl(controlTop.withVelocity(speed.top));
     bottomMotor.setControl(controlBottom.withVelocity(speed.bottom));
   }
@@ -84,18 +92,18 @@ public class Shooter extends SubsystemBase {
 
     private final VoltageOut sysIdControl = new VoltageOut(0);
     private final SysIdRoutine sysIdRoutine =
-            new SysIdRoutine(
-                    new SysIdRoutine.Config(
-                            null, // Use default ramp rate (1 V/s)
-                            Volts.of(4), // Reduce dynamic voltage to 4 to prevent brownout
-                            null, // Use default timeout (10 s)
-                            // Log state with Phoenix SignalLogger class
-                            (state) -> SignalLogger.writeString("state", state.toString())),
-                    new SysIdRoutine.Mechanism(
-                            (Measure<Voltage> volts) ->
-                                    topMotor.setControl(sysIdControl.withOutput(volts.in(Volts))),
-                            null,
-                            Shooter.this));
+        new SysIdRoutine(
+            new SysIdRoutine.Config(
+                null, // Use default ramp rate (1 V/s)
+                Volts.of(4), // Reduce dynamic voltage to 4 to prevent brownout
+                null, // Use default timeout (10 s)
+                // Log state with Phoenix SignalLogger class
+                (state) -> SignalLogger.writeString("state", state.toString())),
+            new SysIdRoutine.Mechanism(
+                (Measure<Voltage> volts) ->
+                    topMotor.setControl(sysIdControl.withOutput(volts.in(Volts))),
+                null,
+                Shooter.this));
 
     public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
       return sysIdRoutine.quasistatic(direction);
@@ -103,5 +111,6 @@ public class Shooter extends SubsystemBase {
 
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
       return sysIdRoutine.dynamic(direction);
+    }
   }
 }
