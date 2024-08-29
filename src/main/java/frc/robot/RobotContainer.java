@@ -4,7 +4,6 @@
 
 package frc.robot;
 
-import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
@@ -75,7 +74,15 @@ public class RobotContainer {
         .whileTrue(
             intake.intakeCmd().alongWith(indexer.feedCmd()).until(indexer.bothSensorsTriggered));
     // Right bumper: Shoot
-    // joystick.rightBumper().whileTrue()
+
+    joystick
+        .rightBumper()
+        .whileTrue(
+            shooter
+                .speedCmd(plannedShootSpeed.speeds)
+                .alongWith(
+                    Commands.waitUntil(shooter::atDesiredSpeeds).andThen(indexer.feedCmd())));
+
     // A AMP
     joystick
         .a()
@@ -109,13 +116,13 @@ public class RobotContainer {
     return Commands.print("No autonomous command configured");
   }
 
-  public void configureSysIDBindings() {
+  private void configureSysIDBindings() {
     var m_mechanism = shooter;
     /* Manually start logging with left bumper before running any tests,
      * and stop logging with right bumper after we're done with ALL tests.
      * This isn't necessary but is convenient to reduce the size of the hoot file */
-    joystick.leftBumper().onTrue(Commands.runOnce(SignalLogger::start));
-    joystick.rightBumper().onTrue(Commands.runOnce(SignalLogger::stop));
+    // joystick.leftBumper().onTrue(Commands.runOnce(SignalLogger::start));
+    // joystick.rightBumper().onTrue(Commands.runOnce(SignalLogger::stop));
 
     /*
      * Joystick Y = quasistatic forward
@@ -127,5 +134,6 @@ public class RobotContainer {
     joystick.a().whileTrue(m_mechanism.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
     joystick.b().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kForward));
     joystick.x().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kReverse));*/
+
   }
 }
