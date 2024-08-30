@@ -31,8 +31,8 @@ public class RobotContainer {
 
   private final SwerveRequest.FieldCentric drive =
       new SwerveRequest.FieldCentric()
-          .withDeadband(MaxSpeed * 0.1)
-          .withRotationalDeadband(MaxAngularRate * 0.1) // Add a 10% deadband
+          .withDeadband(MaxSpeed * 0.03)
+          .withRotationalDeadband(MaxAngularRate * 0.05) // Add a 10% deadband
           .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
   // driving in open loop
   private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
@@ -47,18 +47,23 @@ public class RobotContainer {
   private Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
 
   private void configureBindings() {
+
     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
         drivetrain.applyRequest(
-            () ->
-                drive
-                    .withVelocityX(
-                        -joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
-                    .withVelocityY(
-                        -joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
-                    .withRotationalRate(
-                        -joystick.getRightX()
-                            * MaxAngularRate) // Drive counterclockwise with negative X (left)
-            ));
+            () -> {
+              double velX = -joystick.getLeftY() * MaxSpeed;
+              double velY = -joystick.getLeftX() * MaxSpeed;
+              double rot = -joystick.getRightX() * MaxAngularRate;
+
+              velX = Math.pow(velX, 3) * 0.5 + velX * 0.5;
+              velY = Math.pow(velY, 3) * 0.5 + velY * 0.5;
+              // velX = Math.pow(velX, 3) * 0.5 + velX * 0.5;
+
+              return drive
+                  .withVelocityX(velX) // Drive forward with negative Y (forward)
+                  .withVelocityY(velY) // Drive left with negative X (left)
+                  .withRotationalRate(rot); // Drive counterclockwise with negative X (left)
+            }));
 
     // Driver bindings:
     // Start button: Eject
