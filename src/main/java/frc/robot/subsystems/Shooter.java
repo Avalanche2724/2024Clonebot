@@ -7,6 +7,7 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.SysIdRoutines;
@@ -36,10 +37,12 @@ public class Shooter extends SubsystemBase {
 
     public Speeds speeds;
 
-    ShootingSpeed(Speeds speeds) {}
+    ShootingSpeed(Speeds speeds) {
+      this.speeds = speeds;
+    }
   }
 
-  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = 50;
+  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = 2; // rotations per second
 
   public Shooter() {
     topMotor = new TalonFX(TALONFX_ID_TOP);
@@ -69,8 +72,8 @@ public class Shooter extends SubsystemBase {
 
   private void runWithSpeed(ShootingSpeed.Speeds speed) {
     // targetSpeeds = speed;
-    topMotor.setControl(controlTop.withVelocity(speed.top));
-    bottomMotor.setControl(controlBottom.withVelocity(speed.bottom));
+    topMotor.setControl(controlTop.withVelocity(speed.top / 60)); // we need 2 refactor later
+    bottomMotor.setControl(controlBottom.withVelocity(speed.bottom / 60));
   }
 
   public Command speedCmd(ShootingSpeed.Speeds speed) {
@@ -82,4 +85,9 @@ public class Shooter extends SubsystemBase {
   }
 
   public SysIdRoutines.SingleMotor sysIdRoutines;
+
+  public void periodic() {
+    SmartDashboard.putNumber("cle top", topMotor.getClosedLoopError().getValueAsDouble());
+    SmartDashboard.putNumber("cle bottom", bottomMotor.getClosedLoopError().getValueAsDouble());
+  }
 }

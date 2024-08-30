@@ -40,7 +40,7 @@ public class Indexer extends SubsystemBase {
 
     leftIndexSensor = new DigitalInput(LEFT_SENSOR);
     rightIndexSensor = new DigitalInput(RIGHT_SENSOR);
-    bothSensorsTriggered = new Trigger(leftIndexSensor::get).and(rightIndexSensor::get);
+    bothSensorsTriggered = new Trigger(leftIndexSensor::get).and(rightIndexSensor::get).negate();
 
     motor.getConfigurator().apply(MOTOR_CONFIG);
 
@@ -63,8 +63,15 @@ public class Indexer extends SubsystemBase {
     motor.setControl(control.withOutput(EJECTING_SPEED));
   }
 
+  // i should rewrite this to a motorSpeedCmd
+  // then refactor some of the setcontrol stuff
+
   public Command feedCmd() {
     return run(this::motorFeed);
+  }
+
+  public Command softFeedCmd() {
+    return run(this::motorSoftFeed);
   }
 
   public Command ejectCmd() {

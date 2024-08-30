@@ -11,7 +11,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class Intake extends SubsystemBase {
   // TODO: investigate using velocity, supply limits, current detection, simulation
-  private static final double INTAKING_SPEED = 0.5;
+  private static final double INTAKING_SPEED = 0.35;
   private static final double EJECTING_SPEED = -0.5;
   private static final int TALONFX_ID = 14;
   private static final TalonFXConfiguration MOTOR_CONFIG =

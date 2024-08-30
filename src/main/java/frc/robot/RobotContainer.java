@@ -72,7 +72,10 @@ public class RobotContainer {
     joystick
         .leftBumper()
         .whileTrue(
-            intake.intakeCmd().alongWith(indexer.feedCmd()).until(indexer.bothSensorsTriggered));
+            intake
+                .intakeCmd()
+                .alongWith(indexer.softFeedCmd())
+                .until(indexer.bothSensorsTriggered));
     // Right bumper: Shoot
 
     joystick
@@ -81,7 +84,14 @@ public class RobotContainer {
             shooter
                 .speedCmd(plannedShootSpeed.speeds)
                 .alongWith(
-                    Commands.waitUntil(shooter::atDesiredSpeeds).andThen(indexer.feedCmd())));
+                    // we need to wait a bit otherwise atdesiredspeeds will return true
+                    // we really could fix this by checking the most recently set speeds and we
+                    // should
+                    // do this
+                    Commands.waitSeconds(0.1)
+                        .andThen(
+                            Commands.waitUntil(shooter::atDesiredSpeeds)
+                                .andThen(indexer.feedCmd()))));
 
     // A AMP
     joystick
