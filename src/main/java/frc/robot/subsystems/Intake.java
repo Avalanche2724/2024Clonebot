@@ -2,57 +2,81 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.math.filter.Debouncer.DebounceType;
+import edu.wpi.first.math.filter.LinearFilter;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 public class Intake extends SubsystemBase {
-  // TODO: investigate using velocity, supply limits, current detection, simulation
-  private static final double INTAKING_SPEED = 0.35;
-  private static final double EJECTING_SPEED = -0.5;
   private static final int TALONFX_ID = 14;
+
   private static final TalonFXConfiguration MOTOR_CONFIG =
       new TalonFXConfiguration()
           .withMotorOutput(
               new MotorOutputConfigs()
                   .withNeutralMode(NeutralModeValue.Brake)
                   .withInverted(InvertedValue.Clockwise_Positive));
-  private final TalonFX motor;
-  private final DutyCycleOut control;
+
+  private final TalonFX motor = new TalonFX(TALONFX_ID);
+  private final VoltageOut control = new VoltageOut(0).withEnableFOC(true);
+
+  private final LinearFilter averageCurrent = LinearFilter.movingAverage(4);
+  public final Trigger intakeCurrentUp =
+      new Trigger(() -> averageCurrent.lastValue() > 10).debounce(0.5, DebounceType.kFalling);
 
   public Intake() {
-    motor = new TalonFX(TALONFX_ID);
-    control = new DutyCycleOut(0);
-
     motor.getConfigurator().apply(MOTOR_CONFIG);
+    motor.getStatorCurrent().setUpdateFrequency(100);
 
     setDefaultCommand(stopCmd());
   }
 
-  private void motorStop() {
-    motor.setControl(control.withOutput(0));
+  public void periodic() {
+    double current = motor.getStatorCurrent().getValueAsDouble();
+    SmartDashboard.putNumber("Intake: Motor Stator Current", current);
+    SmartDashboard.putNumber("Intake: Avg Current", averageCurrent.calculate(current));
   }
 
-  private void motorIntake() {
-    motor.setControl(control.withOutput(INTAKING_SPEED));
+  private void setMotor(double volts) {
+    motor.setControl(control.withOutput(volts));
   }
 
-  private void motorEject() {
-    motor.setControl(control.withOutput(EJECTING_SPEED));
+  private void setMotor(Output out) {
+    setMotor(out.volts);
+  }
+
+  private Command motorSpeedCmd(Output out) {
+    return startEnd(() -> setMotor(out), () -> setMotor(Output.STOP))
+        .withName("IntakeSpeed" + out.name());
   }
 
   public Command intakeCmd() {
-    return run(this::motorIntake);
+    return motorSpeedCmd(Output.INTAKE);
   }
 
   public Command ejectCmd() {
-    return run(this::motorEject);
+    return motorSpeedCmd(Output.EJECT);
   }
 
   public Command stopCmd() {
-    return run(this::motorStop);
+    return motorSpeedCmd(Output.STOP);
+  }
+
+  public enum Output { // in units of volts
+    INTAKE(10),
+    EJECT(-6),
+    STOP(0);
+
+    public final double volts;
+
+    Output(double volts) {
+      this.volts = volts;
+    }
   }
 }

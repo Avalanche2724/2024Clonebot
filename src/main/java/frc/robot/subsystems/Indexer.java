@@ -2,7 +2,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
@@ -12,73 +12,85 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 public class Indexer extends SubsystemBase {
-  // TODO also: Make the sensors able to be disabled individually
-  // TODO: investigate using velocity, supply limits, current detection, simulation
-
-  // for intaking
-  private static final double SOFTFEEDING_SPEED = 0.25;
-  private static final double FEEDING_SPEED = 0.5;
-  private static final double EJECTING_SPEED = -0.5;
   private static final int TALONFX_ID = 5;
   private static final int LEFT_SENSOR = 0;
   private static final int RIGHT_SENSOR = 1;
+
   private static final TalonFXConfiguration MOTOR_CONFIG =
       new TalonFXConfiguration()
           .withMotorOutput(
               new MotorOutputConfigs()
                   .withNeutralMode(NeutralModeValue.Brake)
                   .withInverted(InvertedValue.CounterClockwise_Positive));
-  private final TalonFX motor;
-  private final DutyCycleOut control;
-  private final DigitalInput leftIndexSensor;
-  private final DigitalInput rightIndexSensor;
-  public final Trigger bothSensorsTriggered;
+
+  public final Sensors sensors = new Sensors();
+  private final TalonFX motor = new TalonFX(TALONFX_ID);
+  private final VoltageOut control = new VoltageOut(0).withEnableFOC(true);
 
   public Indexer() {
-    motor = new TalonFX(TALONFX_ID);
-    control = new DutyCycleOut(0);
-
-    leftIndexSensor = new DigitalInput(LEFT_SENSOR);
-    rightIndexSensor = new DigitalInput(RIGHT_SENSOR);
-    bothSensorsTriggered = new Trigger(leftIndexSensor::get).and(rightIndexSensor::get).negate();
-
     motor.getConfigurator().apply(MOTOR_CONFIG);
-
     setDefaultCommand(stopCmd());
   }
 
-  private void motorStop() {
-    motor.setControl(control.withOutput(0));
+  private void setMotor(double volts) {
+    motor.setControl(control.withOutput(volts));
   }
 
-  private void motorSoftFeed() {
-    motor.setControl(control.withOutput(SOFTFEEDING_SPEED));
+  private void setMotor(Output out) {
+    setMotor(out.volts);
   }
 
-  private void motorFeed() {
-    motor.setControl(control.withOutput(FEEDING_SPEED));
+  private Command motorSpeedCmd(Output out) {
+    return startEnd(() -> setMotor(out), () -> setMotor(Output.STOP))
+        .withName("IntakeSpeed" + out.name());
   }
-
-  private void motorEject() {
-    motor.setControl(control.withOutput(EJECTING_SPEED));
-  }
-
-  // i should rewrite this to a motorSpeedCmd
-  // then refactor some of the setcontrol stuff
 
   public Command feedCmd() {
-    return run(this::motorFeed);
+    return motorSpeedCmd(Output.FEED);
   }
 
   public Command softFeedCmd() {
-    return run(this::motorSoftFeed);
+    return motorSpeedCmd(Output.SOFTFEED);
   }
 
   public Command ejectCmd() {
-    return run(this::motorEject);
+    return motorSpeedCmd(Output.EJECT);
   }
 
   public Command stopCmd() {
-    return run(this::motorStop);
+    return motorSpeedCmd(Output.STOP);
+  }
+
+  // TODO also: Make the sensors able to be disabled individually
+  // TODO: investigate using velocity, supply limits, current detection, simulation
+  public enum Output { // in units of volts
+    SOFTFEED(3),
+    FEED(6),
+    EJECT(-6),
+    STOP(0);
+
+    public final double volts;
+
+    Output(double volts) {
+      this.volts = volts;
+    }
+  }
+
+  public static class Sensors {
+    public DigitalInput leftSensor = new DigitalInput(LEFT_SENSOR);
+    public DigitalInput rightSensor = new DigitalInput(RIGHT_SENSOR);
+
+    public boolean leftSensorEnable = true;
+    public boolean rightSensorEnable = true;
+
+    /** True if left index sensor detects something */
+    public Trigger leftTrigger = new Trigger(leftSensor::get).negate();
+
+    /** True if right index sensor detects something */
+    public Trigger rightTrigger = new Trigger(rightSensor::get).negate();
+
+    /** True if a note is detected in the indexer */
+    public Trigger noteDetected =
+        leftTrigger.and(() -> leftSensorEnable).or(rightTrigger.and(() -> rightSensorEnable));
   }
 }

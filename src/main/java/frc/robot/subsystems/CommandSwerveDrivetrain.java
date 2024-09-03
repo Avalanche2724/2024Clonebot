@@ -10,6 +10,8 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -17,6 +19,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -24,6 +27,8 @@ import java.util.function.Supplier;
  * in command-based projects easily.
  */
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
+  // HUGE TODO: see "Preventing wheel slip" in phoenix 6 docs
+
   private static final double kSimLoopPeriod = 0.005; // 5 ms
   private Notifier m_simNotifier = null;
   private double m_lastSimTime;
@@ -111,9 +116,6 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   }
 
   public class SysIdStuff {
-    private final SwerveRequest.ApplyChassisSpeeds AutoRequest =
-        new SwerveRequest.ApplyChassisSpeeds();
-
     private final SwerveRequest.SysIdSwerveTranslation TranslationCharacterization =
         new SwerveRequest.SysIdSwerveTranslation();
     private final SwerveRequest.SysIdSwerveRotation RotationCharacterization =
@@ -121,52 +123,28 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     private final SwerveRequest.SysIdSwerveSteerGains SteerCharacterization =
         new SwerveRequest.SysIdSwerveSteerGains();
 
+    private SysIdRoutine generateRoutine(double volts, Consumer<Measure<Voltage>> drive) {
+      return new SysIdRoutine(
+          new SysIdRoutine.Config(
+              null,
+              Volts.of(volts),
+              null,
+              (state) -> SignalLogger.writeString("state", state.toString())),
+          new SysIdRoutine.Mechanism(drive, null, CommandSwerveDrivetrain.this));
+    }
+
     /* Use one of these sysidroutines for your particular test */
     private SysIdRoutine SysIdRoutineTranslation =
-        new SysIdRoutine(
-            new SysIdRoutine.Config(
-                null,
-                Volts.of(4),
-                null,
-                (state) -> SignalLogger.writeString("state", state.toString())),
-            new SysIdRoutine.Mechanism(
-                (volts) -> setControl(TranslationCharacterization.withVolts(volts)),
-                null,
-                CommandSwerveDrivetrain.this));
+        generateRoutine(4, (volts) -> setControl(TranslationCharacterization.withVolts(volts)));
 
     private final SysIdRoutine SysIdRoutineRotation =
-        new SysIdRoutine(
-            new SysIdRoutine.Config(
-                null,
-                Volts.of(4),
-                null,
-                (state) -> SignalLogger.writeString("state", state.toString())),
-            new SysIdRoutine.Mechanism(
-                (volts) -> setControl(RotationCharacterization.withVolts(volts)),
-                null,
-                CommandSwerveDrivetrain.this));
+        generateRoutine(4, (volts) -> setControl(RotationCharacterization.withVolts(volts)));
+
     private final SysIdRoutine SysIdRoutineSteer =
-        new SysIdRoutine(
-            new SysIdRoutine.Config(
-                null,
-                Volts.of(7),
-                null,
-                (state) -> SignalLogger.writeString("state", state.toString())),
-            new SysIdRoutine.Mechanism(
-                (volts) -> setControl(SteerCharacterization.withVolts(volts)),
-                null,
-                CommandSwerveDrivetrain.this));
+        generateRoutine(7, (volts) -> setControl(SteerCharacterization.withVolts(volts)));
 
     /* Change this to the sysid routine you want to test */
-    private final SysIdRoutine RoutineToApply = SysIdRoutineTranslation;
-
-    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
-      return RoutineToApply.quasistatic(direction);
-    }
-
-    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
-      return RoutineToApply.dynamic(direction);
-    }
+    private final SysIdRoutine routineToApply = SysIdRoutineTranslation;
   }
 
   public SysIdStuff sysId = new SysIdStuff();

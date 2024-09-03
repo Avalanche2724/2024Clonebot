@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
@@ -13,6 +14,7 @@ import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Indexer;
@@ -20,31 +22,41 @@ import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 
 public class RobotContainer {
-  private double MaxSpeed =
-      TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
-  private double MaxAngularRate =
-      1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
-
+  private static final boolean doSysID = false;
+  private static final SysIdRoutine routine = null;
   /* Setting up bindings for necessary control of the swerve drive platform */
   private final CommandXboxController joystick = new CommandXboxController(0); // My joystick
   private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain; // My drivetrain
-
+  // driving in open loop
+  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
+  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+  private final Shooter shooter = new Shooter();
+  private final Indexer indexer = new Indexer();
+  private final Intake intake = new Intake();
+  private double MaxSpeed =
+      TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
+  private final Telemetry logger = new Telemetry(MaxSpeed);
+  private double MaxAngularRate =
+      1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
   private final SwerveRequest.FieldCentric drive =
       new SwerveRequest.FieldCentric()
           .withDeadband(MaxSpeed * 0.03)
           .withRotationalDeadband(MaxAngularRate * 0.05) // Add a 10% deadband
           .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
-  // driving in open loop
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
-
-  private final Telemetry logger = new Telemetry(MaxSpeed);
-
-  private final Shooter shooter = new Shooter();
-  private final Indexer indexer = new Indexer();
-  private final Intake intake = new Intake();
-
   private Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
+
+  public RobotContainer() {
+    if (doSysID) {
+      configureSysIDBindings(routine);
+    } else {
+      configureBindings();
+    }
+
+    if (Utils.isSimulation()) {
+      drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
+    }
+    drivetrain.registerTelemetry(logger::telemeterize);
+  }
 
   private void configureBindings() {
 
@@ -80,7 +92,7 @@ public class RobotContainer {
             intake
                 .intakeCmd()
                 .alongWith(indexer.softFeedCmd())
-                .until(indexer.bothSensorsTriggered));
+                .until(indexer.sensors.noteDetected));
     // Right bumper: Shoot
 
     joystick
@@ -116,28 +128,16 @@ public class RobotContainer {
                 }));
   }
 
-  public RobotContainer() {
-    configureBindings();
-
-    configureSysIDBindings();
-
-    if (Utils.isSimulation()) {
-      drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
-    }
-    drivetrain.registerTelemetry(logger::telemeterize);
-  }
-
   public Command getAutonomousCommand() {
     return Commands.print("No autonomous command configured");
   }
 
-  private void configureSysIDBindings() {
-    var m_mechanism = shooter;
+  private void configureSysIDBindings(SysIdRoutine routine) {
     /* Manually start logging with left bumper before running any tests,
      * and stop logging with right bumper after we're done with ALL tests.
      * This isn't necessary but is convenient to reduce the size of the hoot file */
-    // joystick.leftBumper().onTrue(Commands.runOnce(SignalLogger::start));
-    // joystick.rightBumper().onTrue(Commands.runOnce(SignalLogger::stop));
+    joystick.leftBumper().onTrue(Commands.runOnce(SignalLogger::start));
+    joystick.rightBumper().onTrue(Commands.runOnce(SignalLogger::stop));
 
     /*
      * Joystick Y = quasistatic forward
@@ -145,10 +145,9 @@ public class RobotContainer {
      * Joystick B = dynamic forward
      * Joystick X = dynamic reverse
      */
-    /*joystick.y().whileTrue(m_mechanism.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    joystick.a().whileTrue(m_mechanism.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    joystick.b().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    joystick.x().whileTrue(m_mechanism.sysIdDynamic(SysIdRoutine.Direction.kReverse));*/
-
+    joystick.y().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kForward));
+    joystick.a().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kReverse));
+    joystick.b().whileTrue(routine.dynamic(SysIdRoutine.Direction.kForward));
+    joystick.x().whileTrue(routine.dynamic(SysIdRoutine.Direction.kReverse));
   }
 }

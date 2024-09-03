@@ -51,6 +51,7 @@ public class Telemetry {
       new Mechanism2d[] {
         new Mechanism2d(1, 1), new Mechanism2d(1, 1), new Mechanism2d(1, 1), new Mechanism2d(1, 1),
       };
+
   /* A direction and length changing ligament for speed representation */
   private final MechanismLigament2d[] m_moduleSpeeds =
       new MechanismLigament2d[] {
