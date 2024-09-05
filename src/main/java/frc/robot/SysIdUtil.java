@@ -9,20 +9,22 @@ import edu.wpi.first.units.Measure;
 import edu.wpi.first.units.Voltage;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import java.util.function.Consumer;
 
 public class SysIdUtil {
-  public static SysIdRoutine singleMotor(Subsystem subsystem, TalonFX motor) {
+  public static SysIdRoutine generateRoutine(
+      Subsystem subsystem, double volts, Consumer<Measure<Voltage>> drive) {
     return new SysIdRoutine(
         new SysIdRoutine.Config(
-            null, // Use default ramp rate (1 V/s)
-            Volts.of(4), // Reduce dynamic voltage to 4 to prevent brownout
-            null, // Use default timeout (10 s)
-            // Log state with Phoenix SignalLogger class
-            (state) -> SignalLogger.writeString("state", state.toString())),
-        new SysIdRoutine.Mechanism(
-            (Measure<Voltage> volts) ->
-                motor.setControl(new VoltageOut(0).withOutput(volts.in(Volts))),
             null,
-            subsystem));
+            Volts.of(volts),
+            null,
+            (state) -> SignalLogger.writeString("state", state.toString())),
+        new SysIdRoutine.Mechanism(drive, null, subsystem));
+  }
+
+  public static SysIdRoutine singleMotor(Subsystem subsystem, TalonFX motor) {
+    return SysIdUtil.generateRoutine(
+        subsystem, 6, (volts) -> motor.setControl(new VoltageOut(0).withOutput(volts.in(Volts))));
   }
 }

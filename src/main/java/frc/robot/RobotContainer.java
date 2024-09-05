@@ -6,8 +6,6 @@ package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -20,36 +18,32 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
+import java.util.function.DoubleUnaryOperator;
 
 public class RobotContainer {
-  private static final boolean doSysID = false;
-  private static final SysIdRoutine routine = null;
-  /* Setting up bindings for necessary control of the swerve drive platform */
-  private final CommandXboxController joystick = new CommandXboxController(0); // My joystick
-  private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain; // My drivetrain
-  // driving in open loop
-  private final SwerveRequest.SwerveDriveBrake brake = new SwerveRequest.SwerveDriveBrake();
-  private final SwerveRequest.PointWheelsAt point = new SwerveRequest.PointWheelsAt();
+  // Subsystems
   private final Shooter shooter = new Shooter();
   private final Indexer indexer = new Indexer();
   private final Intake intake = new Intake();
-  private double MaxSpeed =
-      TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
-  private final Telemetry logger = new Telemetry(MaxSpeed);
-  private double MaxAngularRate =
-      1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
-  private final SwerveRequest.FieldCentric drive =
-      new SwerveRequest.FieldCentric()
-          .withDeadband(MaxSpeed * 0.03)
-          .withRotationalDeadband(MaxAngularRate * 0.05) // Add a 10% deadband
-          .withDriveRequestType(DriveRequestType.OpenLoopVoltage); // I want field-centric
+  // why is this instantiated statically???? whose idea was this
+  // i feel like this will cause some sort of weird issue in the future
+  private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain;
+  // Other stuff
+  private static final boolean doSysID = false;
+  private final SysIdRoutine routine = drivetrain.sysId.routineToApply;
+
+  // Bindings
+  private final CommandXboxController joystick = new CommandXboxController(0);
   private Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
+  // Other stuff
+  private final Telemetry logger = new Telemetry(drivetrain.MaxSpeed);
 
   public RobotContainer() {
+    configureDriveBindings();
     if (doSysID) {
       configureSysIDBindings(routine);
     } else {
-      configureBindings();
+      configureNonDriveBindings();
     }
 
     if (Utils.isSimulation()) {
@@ -58,32 +52,52 @@ public class RobotContainer {
     drivetrain.registerTelemetry(logger::telemeterize);
   }
 
-  private void configureBindings() {
-
+  private void configureDriveBindings() {
     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
         drivetrain.applyRequest(
             () -> {
-              double velX = -joystick.getLeftY() * MaxSpeed;
-              double velY = -joystick.getLeftX() * MaxSpeed;
-              double rot = -joystick.getRightX() * MaxAngularRate;
+              double joystickY = -joystick.getLeftY();
+              double joystickX = joystick.getLeftX();
+              double rot = -joystick.getRightX();
 
-              velX = Math.pow(velX, 3) * 0.5 + velX * 0.5;
-              velY = Math.pow(velY, 3) * 0.5 + velY * 0.5;
-              // velX = Math.pow(velX, 3) * 0.5 + velX * 0.5;
+              DoubleUnaryOperator transformThing = (val) -> // uses a polynomial to scale input
+                      // this also applies deadbands
+                      Math.abs(val) < 0.1
+                          ? 0
+                          : Math.copySign(Math.pow(val, 2), val) * 0.5 + val * 0.5;
+              // : val;
+              double leftJoystickAngle = Math.atan2(joystickY, joystickX);
+              double leftJoystickDist = Math.hypot(joystickX, joystickY);
 
-              return drive
-                  .withVelocityX(velX) // Drive forward with negative Y (forward)
-                  .withVelocityY(velY) // Drive left with negative X (left)
-                  .withRotationalRate(rot); // Drive counterclockwise with negative X (left)
+              rot = transformThing.applyAsDouble(rot);
+              leftJoystickDist = transformThing.applyAsDouble(leftJoystickDist);
+
+              double forward = Math.sin(leftJoystickAngle) * leftJoystickDist;
+              double left = -(Math.cos(leftJoystickAngle) * leftJoystickDist);
+
+              return drivetrain
+                  .drive
+                  .withVelocityX(
+                      forward
+                          * CommandSwerveDrivetrain
+                              .MaxSpeed) // Drive forward with negative Y (forward)
+                  .withVelocityY(
+                      left * CommandSwerveDrivetrain.MaxSpeed) // Drive left with negative X (left)
+                  .withRotationalRate(
+                      rot
+                          * CommandSwerveDrivetrain
+                              .MaxAngularRate); // Drive counterclockwise with negative X (left)
             }));
-
-    // Driver bindings:
-    // Start button: Eject
-    joystick.start().whileTrue(indexer.ejectCmd().alongWith(intake.ejectCmd()));
     // Back button: Recenter gyro
     joystick
         .back()
         .onTrue(drivetrain.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView));
+  }
+
+  private void configureNonDriveBindings() {
+    // Driver bindings:
+    // Start button: Eject
+    joystick.start().whileTrue(indexer.ejectCmd().alongWith(intake.ejectCmd()));
 
     // Left bumper: Intake
     joystick
@@ -94,7 +108,6 @@ public class RobotContainer {
                 .alongWith(indexer.softFeedCmd())
                 .until(indexer.sensors.noteDetected));
     // Right bumper: Shoot
-
     joystick
         .rightBumper()
         .whileTrue(

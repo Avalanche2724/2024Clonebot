@@ -1,17 +1,26 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.Volts;
+import static frc.robot.SysIdUtil.generateRoutine;
 
-import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveModule;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.DriveRequestType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
+import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest.FieldCentric;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
+import com.pathplanner.lib.util.PIDConstants;
+import com.pathplanner.lib.util.ReplanningConfig;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.units.Measure;
-import edu.wpi.first.units.Voltage;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Notifier;
@@ -19,7 +28,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import java.util.function.Consumer;
+import frc.robot.generated.TunerConstants;
 import java.util.function.Supplier;
 
 /**
@@ -28,6 +37,20 @@ import java.util.function.Supplier;
  */
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
   // HUGE TODO: see "Preventing wheel slip" in phoenix 6 docs
+  // TODO: redo brake and pointat requests
+  // Stuff for controls:
+  public static final double MaxSpeed =
+      TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
+  public static final double MaxAngularRate =
+      1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
+  public final FieldCentricButBetter drive =
+      (FieldCentricButBetter)
+          new FieldCentricButBetter()
+              // NOTE: stricter deadbands implemented in controls
+              .withDeadband(MaxSpeed * 0.001)
+              .withRotationalDeadband(MaxAngularRate * 0.001)
+              .withDriveRequestType(
+                  DriveRequestType.OpenLoopVoltage); // I want field-centric driving open loop
 
   private static final double kSimLoopPeriod = 0.005; // 5 ms
   private Notifier m_simNotifier = null;
@@ -39,6 +62,9 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   private final Rotation2d RedAlliancePerspectiveRotation = Rotation2d.fromDegrees(180);
   /* Keep track if we've ever applied the operator perspective before or not */
   private boolean hasAppliedOperatorPerspective = false;
+
+  private final SwerveRequest.ApplyChassisSpeeds AutoRequest =
+      new SwerveRequest.ApplyChassisSpeeds();
 
   public CommandSwerveDrivetrain(
       SwerveDrivetrainConstants driveTrainConstants,
@@ -115,6 +141,78 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     seedFieldRelative(newLocation);
   }
 
+  private void configurePathPlanner() {
+    double driveBaseRadius = 0;
+    for (var moduleLocation : m_moduleLocations) {
+      driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
+    }
+
+    AutoBuilder.configureHolonomic(
+        () -> this.getState().Pose, // Supplier of current robot pose
+        this::seedFieldRelative, // Consumer for seeding pose against auto
+        this::getCurrentRobotChassisSpeeds,
+        (speeds) -> this.setControl(AutoRequest.withSpeeds(speeds)),
+        // Consumer of ChassisSpeeds to drive the robot
+        new HolonomicPathFollowerConfig(
+            new PIDConstants(10, 0, 0), // should we tune this? idk
+            new PIDConstants(10, 0, 0),
+            TunerConstants.kSpeedAt12VoltsMps,
+            driveBaseRadius,
+            new ReplanningConfig()),
+        () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
+        // Assume the path needs to be flipped for Red vs Blue, this is normally the case
+        this); // Subsystem for requirements
+  }
+
+  public Command getAutoPath(String pathName) {
+    return new PathPlannerAuto(pathName);
+  }
+
+  public ChassisSpeeds getCurrentRobotChassisSpeeds() {
+    return m_kinematics.toChassisSpeeds(getState().ModuleStates);
+  }
+
+  // this desaturates wheel speeds, unlike the ctre api
+  public class FieldCentricButBetter extends FieldCentric {
+    @Override
+    public StatusCode apply(
+        SwerveControlRequestParameters parameters, SwerveModule... modulesToApply) {
+      double toApplyX = VelocityX;
+      double toApplyY = VelocityY;
+      if (ForwardReference == SwerveRequest.ForwardReference.OperatorPerspective) {
+        /* If we're operator perspective, modify the X/Y translation by the angle */
+        Translation2d tmp = new Translation2d(toApplyX, toApplyY);
+        tmp = tmp.rotateBy(parameters.operatorForwardDirection);
+        toApplyX = tmp.getX();
+        toApplyY = tmp.getY();
+      }
+      double toApplyOmega = RotationalRate;
+      if (Math.sqrt(toApplyX * toApplyX + toApplyY * toApplyY) < Deadband) {
+        toApplyX = 0;
+        toApplyY = 0;
+      }
+      if (Math.abs(toApplyOmega) < RotationalDeadband) {
+        toApplyOmega = 0;
+      }
+
+      ChassisSpeeds speeds =
+          ChassisSpeeds.discretize(
+              ChassisSpeeds.fromFieldRelativeSpeeds(
+                  toApplyX, toApplyY, toApplyOmega, parameters.currentPose.getRotation()),
+              parameters.updatePeriod);
+      var states = parameters.kinematics.toSwerveModuleStates(speeds, CenterOfRotation);
+      // this is the line that ctre forgot (hopefully it's correct):
+      SwerveDriveKinematics.desaturateWheelSpeeds(
+          states, speeds, MaxSpeed, MaxSpeed, MaxAngularRate);
+
+      for (int i = 0; i < modulesToApply.length; ++i) {
+        modulesToApply[i].apply(states[i], DriveRequestType, SteerRequestType);
+      }
+
+      return StatusCode.OK;
+    }
+  }
+
   public class SysIdStuff {
     private final SwerveRequest.SysIdSwerveTranslation TranslationCharacterization =
         new SwerveRequest.SysIdSwerveTranslation();
@@ -123,28 +221,27 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     private final SwerveRequest.SysIdSwerveSteerGains SteerCharacterization =
         new SwerveRequest.SysIdSwerveSteerGains();
 
-    private SysIdRoutine generateRoutine(double volts, Consumer<Measure<Voltage>> drive) {
-      return new SysIdRoutine(
-          new SysIdRoutine.Config(
-              null,
-              Volts.of(volts),
-              null,
-              (state) -> SignalLogger.writeString("state", state.toString())),
-          new SysIdRoutine.Mechanism(drive, null, CommandSwerveDrivetrain.this));
-    }
-
     /* Use one of these sysidroutines for your particular test */
     private SysIdRoutine SysIdRoutineTranslation =
-        generateRoutine(4, (volts) -> setControl(TranslationCharacterization.withVolts(volts)));
+        generateRoutine(
+            CommandSwerveDrivetrain.this,
+            4,
+            (volts) -> setControl(TranslationCharacterization.withVolts(volts)));
 
     private final SysIdRoutine SysIdRoutineRotation =
-        generateRoutine(4, (volts) -> setControl(RotationCharacterization.withVolts(volts)));
+        generateRoutine(
+            CommandSwerveDrivetrain.this,
+            4,
+            (volts) -> setControl(RotationCharacterization.withVolts(volts)));
 
     private final SysIdRoutine SysIdRoutineSteer =
-        generateRoutine(7, (volts) -> setControl(SteerCharacterization.withVolts(volts)));
+        generateRoutine(
+            CommandSwerveDrivetrain.this,
+            7,
+            (volts) -> setControl(SteerCharacterization.withVolts(volts)));
 
     /* Change this to the sysid routine you want to test */
-    private final SysIdRoutine routineToApply = SysIdRoutineTranslation;
+    public final SysIdRoutine routineToApply = SysIdRoutineTranslation;
   }
 
   public SysIdStuff sysId = new SysIdStuff();
