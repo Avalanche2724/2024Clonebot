@@ -13,5 +13,4 @@ public class AutoCommands {
   public static Command shooty() {
     return bot.shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds); // make better later
   }
-  
 }

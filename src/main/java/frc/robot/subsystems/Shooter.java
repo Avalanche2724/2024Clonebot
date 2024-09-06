@@ -63,7 +63,7 @@ public class Shooter extends SubsystemBase {
   public boolean atDesiredSpeeds() {
     return Math.abs(topMotor.getClosedLoopError().getValueAsDouble()) < CLOSED_LOOP_ALLOWABLE_ERROR
         && Math.abs(bottomMotor.getClosedLoopError().getValueAsDouble())
-        < CLOSED_LOOP_ALLOWABLE_ERROR;
+            < CLOSED_LOOP_ALLOWABLE_ERROR;
   }
 
   // private ShootingSpeed.Speeds targetSpeeds; // unused, remove later
@@ -82,7 +82,6 @@ public class Shooter extends SubsystemBase {
       Supplier<Speeds> speed) { // we should probably change this but we can do that LATER
     return run(() -> runWithSpeed(speed.get()));
   }
-
 
   public Command stopCmd() {
     return run(this::motorStop);
@@ -103,7 +102,6 @@ public class Shooter extends SubsystemBase {
       this.speeds = speeds;
     }
 
-    public record Speeds(double top, double bottom) {
-    }
+    public record Speeds(double top, double bottom) {}
   }
 }
