@@ -18,16 +18,19 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Shooter.ShootingSpeed;
+import frc.robot.subsystems.Shooter.ShootingSpeed.Speeds;
 import java.util.function.DoubleUnaryOperator;
+import java.util.function.Supplier;
 
 public class RobotContainer {
   // Subsystems
-  private final Shooter shooter = new Shooter();
-  private final Indexer indexer = new Indexer();
-  private final Intake intake = new Intake();
+  public final Shooter shooter = new Shooter();
+  public final Indexer indexer = new Indexer();
+  public final Intake intake = new Intake();
   // why is this instantiated statically???? whose idea was this
   // i feel like this will cause some sort of weird issue in the future
-  private final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain;
+  public final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain;
   // Other stuff
   private static final boolean doSysID = false;
   private final SysIdRoutine routine = drivetrain.sysId.routineToApply;
@@ -61,10 +64,10 @@ public class RobotContainer {
               double rot = -joystick.getRightX();
 
               DoubleUnaryOperator transformThing = (val) -> // uses a polynomial to scale input
-                      // this also applies deadbands
-                      Math.abs(val) < 0.1
-                          ? 0
-                          : Math.copySign(Math.pow(val, 2), val) * 0.5 + val * 0.5;
+                  // this also applies deadbands
+                  Math.abs(val) < 0.1
+                      ? 0
+                      : Math.copySign(Math.pow(val, 2), val) * 0.5 + val * 0.5;
               // : val;
               double leftJoystickAngle = Math.atan2(joystickY, joystickX);
               double leftJoystickDist = Math.hypot(joystickX, joystickY);
@@ -80,18 +83,38 @@ public class RobotContainer {
                   .withVelocityX(
                       forward
                           * CommandSwerveDrivetrain
-                              .MaxSpeed) // Drive forward with negative Y (forward)
+                          .MaxSpeed) // Drive forward with negative Y (forward)
                   .withVelocityY(
                       left * CommandSwerveDrivetrain.MaxSpeed) // Drive left with negative X (left)
                   .withRotationalRate(
                       rot
                           * CommandSwerveDrivetrain
-                              .MaxAngularRate); // Drive counterclockwise with negative X (left)
+                          .MaxAngularRate); // Drive counterclockwise with negative X (left)
             }));
     // Back button: Recenter gyro
     joystick
         .back()
         .onTrue(drivetrain.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView));
+  }
+
+  public Command intakeUntilNote() {
+    return intake
+        .intakeCmd()
+        .alongWith(indexer.softFeedCmd())
+        .until(indexer.sensors.noteDetected)
+  }
+  public Command shootyShoot(Supplier<Speeds> speedy) {
+    return shooter
+        .speedCmd(speedy)
+        .alongWith(
+            // we need to wait a bit otherwise atdesiredspeeds will return true
+            // we really could fix this by checking the most recently set speeds and we
+            // should
+            // do this
+            Commands.waitSeconds(0.1)
+                .andThen(
+                    Commands.waitUntil(shooter::atDesiredSpeeds)
+                        .andThen(indexer.feedCmd())));
   }
 
   private void configureNonDriveBindings() {
@@ -103,25 +126,11 @@ public class RobotContainer {
     joystick
         .leftBumper()
         .whileTrue(
-            intake
-                .intakeCmd()
-                .alongWith(indexer.softFeedCmd())
-                .until(indexer.sensors.noteDetected));
+            intakeUntilNote());
     // Right bumper: Shoot
     joystick
         .rightBumper()
-        .whileTrue(
-            shooter
-                .speedCmd(plannedShootSpeed.speeds)
-                .alongWith(
-                    // we need to wait a bit otherwise atdesiredspeeds will return true
-                    // we really could fix this by checking the most recently set speeds and we
-                    // should
-                    // do this
-                    Commands.waitSeconds(0.1)
-                        .andThen(
-                            Commands.waitUntil(shooter::atDesiredSpeeds)
-                                .andThen(indexer.feedCmd()))));
+        .whileTrue(shootyShoot(()->plannedShootSpeed.speeds));
 
     // A AMP
     joystick
