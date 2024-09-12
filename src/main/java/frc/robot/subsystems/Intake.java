@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -21,7 +22,11 @@ public class Intake extends SubsystemBase {
           .withMotorOutput(
               new MotorOutputConfigs()
                   .withNeutralMode(NeutralModeValue.Brake)
-                  .withInverted(InvertedValue.Clockwise_Positive));
+                  .withInverted(InvertedValue.Clockwise_Positive))
+          .withCurrentLimits(
+              new CurrentLimitsConfigs()
+                  .withStatorCurrentLimit(50) // basically chosen based on guessing™
+                  .withStatorCurrentLimitEnable(true));
 
   private final TalonFX motor = new TalonFX(TALONFX_ID);
   private final VoltageOut control = new VoltageOut(0).withEnableFOC(true);
@@ -69,7 +74,7 @@ public class Intake extends SubsystemBase {
   }
 
   public enum Output { // in units of volts
-    INTAKE(10),
+    INTAKE(12),
     EJECT(-6),
     STOP(0);
 

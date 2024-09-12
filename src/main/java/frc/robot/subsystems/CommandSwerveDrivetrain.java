@@ -13,6 +13,7 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest.FieldCentric;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.PathPlannerAuto;
+import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
@@ -141,7 +142,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
     seedFieldRelative(newLocation);
   }
 
-  private void configurePathPlanner() {
+  public void configurePathPlanner() {
     double driveBaseRadius = 0;
     for (var moduleLocation : m_moduleLocations) {
       driveBaseRadius = Math.max(driveBaseRadius, moduleLocation.getNorm());
@@ -162,6 +163,11 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         () -> DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red,
         // Assume the path needs to be flipped for Red vs Blue, this is normally the case
         this); // Subsystem for requirements
+  }
+
+  public void followPathCommand(String pathName) {
+    PathPlannerPath path = PathPlannerPath.fromPathFile(pathName);
+    // path = TODO!!!!!!!!!!!
   }
 
   public Command getAutoPath(String pathName) {

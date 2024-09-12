@@ -94,7 +94,7 @@ public class Shooter extends SubsystemBase {
 
   public enum ShootingSpeed {
     AMP(new Speeds(350, 950)),
-    SUBWOOFER(new Speeds(1400, 2800));
+    SUBWOOFER(new Speeds(1800, 3600));
 
     public Speeds speeds;
 

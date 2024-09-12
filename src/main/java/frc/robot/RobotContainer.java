@@ -6,6 +6,8 @@ package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
+import com.pathplanner.lib.auto.NamedCommands;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -19,6 +21,7 @@ import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Shooter.ShootingSpeed.Speeds;
+import java.util.Map;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Supplier;
 
@@ -32,7 +35,7 @@ public class RobotContainer {
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain;
   // Other stuff
   private static final boolean doSysID = false;
-  private final SysIdRoutine routine = drivetrain.sysId.routineToApply;
+  private final SysIdRoutine routine = null; // drivetrain.sysId.routineToApply;
 
   // Bindings
   private final CommandXboxController joystick = new CommandXboxController(0);
@@ -48,6 +51,13 @@ public class RobotContainer {
       configureNonDriveBindings();
     }
 
+    AutoCommands.bot = this;
+    NamedCommands.registerCommands(
+        Map.of(
+            "shoot", AutoCommands.shoot(),
+            "intake", AutoCommands.intake()));
+    drivetrain.configurePathPlanner();
+
     if (Utils.isSimulation()) {
       drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
     }
@@ -62,12 +72,16 @@ public class RobotContainer {
               double joystickX = joystick.getLeftX();
               double rot = -joystick.getRightX();
 
-              DoubleUnaryOperator transformThing = (val) -> // uses a polynomial to scale input
-                      // this also applies deadbands
-                      Math.abs(val) < 0.1
-                          ? 0
-                          : Math.copySign(Math.pow(val, 2), val) * 0.5 + val * 0.5;
+              /*DoubleUnaryOperator transformThing = (val) -> // uses a polynomial to scale input
+              // this also applies deadbands
+              Math.abs(val) < 0.1
+                  ? 0
+                  : Math.copySign(Math.pow(val, 2), val) * 0.5 + val * 0.5;*/
               // : val;
+
+              // applies deadbands, could potentially be used for polynomial input scaling later
+              DoubleUnaryOperator transformThing = (val) -> MathUtil.applyDeadband(val, 0.10);
+
               double leftJoystickAngle = Math.atan2(joystickY, joystickX);
               double leftJoystickDist = Math.hypot(joystickX, joystickY);
 
@@ -79,16 +93,12 @@ public class RobotContainer {
 
               return drivetrain
                   .drive
-                  .withVelocityX(
-                      forward
-                          * CommandSwerveDrivetrain
-                              .MaxSpeed) // Drive forward with negative Y (forward)
-                  .withVelocityY(
-                      left * CommandSwerveDrivetrain.MaxSpeed) // Drive left with negative X (left)
-                  .withRotationalRate(
-                      rot
-                          * CommandSwerveDrivetrain
-                              .MaxAngularRate); // Drive counterclockwise with negative X (left)
+                  .withVelocityX( // Drive forward with negative Y (forward)
+                      forward * CommandSwerveDrivetrain.MaxSpeed)
+                  .withVelocityY( // Drive left with negative X (left)
+                      left * CommandSwerveDrivetrain.MaxSpeed)
+                  .withRotationalRate( // Drive counterclockwise with negative X (left)
+                      rot * CommandSwerveDrivetrain.MaxAngularRate);
             }));
     // Back button: Recenter gyro
     joystick
@@ -141,6 +151,7 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
+    // return drivetrain.getAutoPath("autopath");
     return Commands.print("No autonomous command configured");
   }
 
