@@ -11,6 +11,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.GenericHID.RumbleType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -36,6 +37,8 @@ public class RobotContainer {
   // Other stuff
   private static final boolean doSysID = false;
   private final SysIdRoutine routine = null; // drivetrain.sysId.routineToApply;
+
+  public final Photon photon = new Photon();
 
   // Bindings
   private final CommandXboxController joystick = new CommandXboxController(0);
@@ -110,6 +113,17 @@ public class RobotContainer {
     return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
   }
 
+  public Command intakeUntilNoteWhileRumble() {
+    return intakeUntilNote().alongWith(Commands.run(() ->
+        {
+          if (indexer.sensors.noteDetected.getAsBoolean()) { // make this better later
+            joystick.getHID().setRumble(RumbleType.kLeftRumble, 1);
+          }
+        })).andThen(Commands.waitSeconds(0.2))
+        .finallyDo(() -> joystick.getHID().setRumble(RumbleType.kLeftRumble, 1));
+  }
+
+
   public Command shootyShoot(Supplier<Speeds> speedy) {
     return shooter
         .speedCmd(speedy)
@@ -128,7 +142,7 @@ public class RobotContainer {
     joystick.start().whileTrue(indexer.ejectCmd().alongWith(intake.ejectCmd()));
 
     // Left bumper: Intake
-    joystick.leftBumper().whileTrue(intakeUntilNote());
+    joystick.leftBumper().whileTrue(intakeUntilNoteWhileRumble());
     // Right bumper: Shoot
     joystick.rightBumper().whileTrue(shootyShoot(() -> plannedShootSpeed.speeds));
 
@@ -172,5 +186,34 @@ public class RobotContainer {
     joystick.a().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kReverse));
     joystick.b().whileTrue(routine.dynamic(SysIdRoutine.Direction.kForward));
     joystick.x().whileTrue(routine.dynamic(SysIdRoutine.Direction.kReverse));
+  }
+
+  public void addPhotonPos() {
+    var pose = photon.getEstimatedGlobalPose();
+
+    if (pose.isPresent()) {
+      var p = pose.get();
+      var pose3d = p.estimatedPose;
+      var pose2d = pose3d.toPose2d();
+      if (Math.abs(pose3d.getZ()) > 0.2) {
+        return;
+      }
+      if (pose3d.getY() < 0 || pose3d.getX() < 0) {
+        return;
+      }
+
+      if (pose2d.getY() > 13 || pose2d.getX() > 13) {
+        return;
+      }
+
+      double maxArea = 0;
+      for (var target : p.targetsUsed) {
+        maxArea = Math.max(target.getArea(), maxArea);
+      }
+      if (maxArea < 20000 /* pixels?*/) {
+        return;
+      }
+      drivetrain.addVisionMeasurement(pose2d, p.timestampSeconds);
+    }
   }
 }

@@ -1,5 +1,6 @@
+package frc.robot;
+
 import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -34,8 +35,7 @@ public class Photon {
             aprilTagFieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, cam, robotToCam);
   }
 
-  public Optional<EstimatedRobotPose> getEstimatedGlobalPose(Pose2d prevEstimatedRobotPose) {
-    photonPoseEstimator.setReferencePose(prevEstimatedRobotPose);
+  public Optional<EstimatedRobotPose> getEstimatedGlobalPose() {
     return photonPoseEstimator.update();
   }
 }
