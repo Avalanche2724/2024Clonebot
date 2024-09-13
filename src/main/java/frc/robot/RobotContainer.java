@@ -21,6 +21,7 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
+import frc.robot.subsystems.Shooter.ShootingSpeed;
 import frc.robot.subsystems.Shooter.ShootingSpeed.Speeds;
 import java.util.Map;
 import java.util.function.DoubleUnaryOperator;
@@ -163,6 +164,15 @@ public class RobotContainer {
             Commands.runOnce(
                 () -> {
                   plannedShootSpeed = Shooter.ShootingSpeed.SUBWOOFER;
+                }));
+
+    // X: Shooter
+    joystick
+        .x()
+        .onTrue(
+            Commands.runOnce(
+                () -> {
+                  plannedShootSpeed = ShootingSpeed.PODIUM;
                 }));
   }
 
