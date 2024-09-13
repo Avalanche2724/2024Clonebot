@@ -114,15 +114,17 @@ public class RobotContainer {
   }
 
   public Command intakeUntilNoteWhileRumble() {
-    return intakeUntilNote().alongWith(Commands.run(() ->
-        {
-          if (indexer.sensors.noteDetected.getAsBoolean()) { // make this better later
-            joystick.getHID().setRumble(RumbleType.kLeftRumble, 1);
-          }
-        })).andThen(Commands.waitSeconds(0.2))
-        .finallyDo(() -> joystick.getHID().setRumble(RumbleType.kLeftRumble, 1));
+    return intakeUntilNote()
+        .alongWith(
+            Commands.run(
+                () -> {
+                  if (indexer.sensors.noteDetected.getAsBoolean()) { // make this better later
+                    joystick.getHID().setRumble(RumbleType.kLeftRumble, 1);
+                  }
+                }))
+        .andThen(Commands.waitSeconds(0.2))
+        .finallyDo(() -> joystick.getHID().setRumble(RumbleType.kLeftRumble, 0));
   }
-
 
   public Command shootyShoot(Supplier<Speeds> speedy) {
     return shooter
@@ -192,6 +194,7 @@ public class RobotContainer {
     var pose = photon.getEstimatedGlobalPose();
 
     if (pose.isPresent()) {
+      // System.out.println("Pose: " + pose.get().estimatedPose.toString());
       var p = pose.get();
       var pose3d = p.estimatedPose;
       var pose2d = pose3d.toPose2d();
@@ -202,7 +205,7 @@ public class RobotContainer {
         return;
       }
 
-      if (pose2d.getY() > 13 || pose2d.getX() > 13) {
+      if (pose2d.getY() > 15 || pose2d.getX() > 15) {
         return;
       }
 
@@ -210,9 +213,11 @@ public class RobotContainer {
       for (var target : p.targetsUsed) {
         maxArea = Math.max(target.getArea(), maxArea);
       }
-      if (maxArea < 20000 /* pixels?*/) {
+      /*if (maxArea < 500 ) { //pixels
         return;
-      }
+      }*/
+
+      // System.out.println("Pose passed " + maxArea);
       drivetrain.addVisionMeasurement(pose2d, p.timestampSeconds);
     }
   }

@@ -16,7 +16,7 @@ public class Photon {
 
   public Photon() {
     var aprilTagFieldLayout = AprilTagFields.k2024Crescendo.loadAprilTagLayoutField();
-    var cam = new PhotonCamera("testCamera");
+    var cam = new PhotonCamera("Arducam_OV9281_USB_Camera");
 
     Transform3d robotToCam =
         new Transform3d(
@@ -25,7 +25,7 @@ public class Photon {
                 0.0,
                 Units.inchesToMeters(11.75)), //  approximation, fix later
             new Rotation3d(
-                0, -30, // idk
+                0, 30, // idk
                 0)); // Cam mounted facing forward, half a meter forward of center, half a meter up
     // from center.
 

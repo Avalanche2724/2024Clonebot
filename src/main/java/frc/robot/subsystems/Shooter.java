@@ -29,7 +29,7 @@ public class Shooter extends SubsystemBase {
           .withSlot0(new Slot0Configs().withKS(0.195).withKV(0.126).withKP(0.377).withKA(0.0127));
   private static final TalonFXConfiguration MOTOR_CONFIG_BOTTOM = MOTOR_CONFIG_TOP;
   private static final double CLOSED_LOOP_ALLOWABLE_ERROR = 2; // rotations per second
-/*
+  /*
   static {
     //MOTOR_CONFIG_BOTTOM.deserialize(
     //    MOTOR_CONFIG_TOP.serialize()); // clone configs from top to bottom // this did not work, look at later;
@@ -63,7 +63,7 @@ public class Shooter extends SubsystemBase {
   public boolean atDesiredSpeeds() {
     return Math.abs(topMotor.getClosedLoopError().getValueAsDouble()) < CLOSED_LOOP_ALLOWABLE_ERROR
         && Math.abs(bottomMotor.getClosedLoopError().getValueAsDouble())
-        < CLOSED_LOOP_ALLOWABLE_ERROR;
+            < CLOSED_LOOP_ALLOWABLE_ERROR;
   }
 
   // private ShootingSpeed.Speeds targetSpeeds; // unused, remove later
@@ -102,7 +102,6 @@ public class Shooter extends SubsystemBase {
       this.speeds = speeds;
     }
 
-    public record Speeds(double top, double bottom) {
-    }
+    public record Speeds(double top, double bottom) {}
   }
 }

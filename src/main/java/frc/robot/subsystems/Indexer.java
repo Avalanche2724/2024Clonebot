@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.MotorOutputConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.VoltageOut;
@@ -21,7 +22,11 @@ public class Indexer extends SubsystemBase {
           .withMotorOutput(
               new MotorOutputConfigs()
                   .withNeutralMode(NeutralModeValue.Brake)
-                  .withInverted(InvertedValue.CounterClockwise_Positive));
+                  .withInverted(InvertedValue.CounterClockwise_Positive))
+          .withCurrentLimits(
+              new CurrentLimitsConfigs()
+                  .withStatorCurrentLimit(40) // basically chosen based on guessing™
+                  .withStatorCurrentLimitEnable(true));
 
   public final Sensors sensors = new Sensors();
   private final TalonFX motor = new TalonFX(TALONFX_ID);
@@ -65,7 +70,7 @@ public class Indexer extends SubsystemBase {
   // TODO: investigate using velocity, supply limits, current detection, simulation
   public enum Output { // in units of volts
     SOFTFEED(3),
-    FEED(6),
+    FEED(9),
     EJECT(-6),
     STOP(0);
 

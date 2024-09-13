@@ -46,8 +46,8 @@ public class TunerConstants {
   private static final ClosedLoopOutputType driveClosedLoopOutput = ClosedLoopOutputType.Voltage;
   // The stator current at which the wheels start to slip;
   // This needs to be tuned to your individual robot
-  private static final double kSlipCurrentA = 80; // this was generated with the amazing "random guess"
-  // strategy
+  private static final double kSlipCurrentA =
+      100; // this was generated with the amazing "random guess" strategy
   // Initial configs for the drive and steer motors and the CANcoder; these cannot be null.
   // Some configs will be overwritten; check the `with*InitialConfigs()` API documentation.
   private static final TalonFXConfiguration driveInitialConfigs = new TalonFXConfiguration();
