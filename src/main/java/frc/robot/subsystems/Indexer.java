@@ -69,7 +69,7 @@ public class Indexer extends SubsystemBase {
   // TODO also: Make the sensors able to be disabled individually
   // TODO: investigate using velocity, supply limits, current detection, simulation
   public enum Output { // in units of volts
-    SOFTFEED(3),
+    SOFTFEED(7),
     FEED(9),
     EJECT(-6),
     STOP(0);

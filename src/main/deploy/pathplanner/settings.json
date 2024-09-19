@@ -1,22 +1,20 @@
 {
-  "robotWidth": 0.9,
-  "robotLength": 0.9,
+  "robotWidth": 0.85,
+  "robotLength": 0.95,
   "holonomicMode": true,
   "pathFolders": [],
-  "autoFolders": [
-    "New Folder"
-  ],
-  "defaultMaxVel": 3.0,
+  "autoFolders": [],
+  "defaultMaxVel": 4.0,
   "defaultMaxAccel": 3.0,
   "defaultMaxAngVel": 540.0,
   "defaultMaxAngAccel": 720.0,
-  "robotMass": 74.088,
+  "robotMass": 50.73,
   "robotMOI": 6.883,
-  "robotWheelbase": 0.546,
-  "robotTrackwidth": 0.546,
-  "driveWheelRadius": 0.048,
-  "driveGearing": 5.143,
-  "maxDriveRPM": 5650.0,
-  "driveMotor": "KRAKEN_60A",
-  "wheelCOF": 1.2
+  "robotWheelbase": 0.4,
+  "robotTrackwidth": 0.57785,
+  "driveWheelRadius": 0.05,
+  "driveGearing": 6.12,
+  "maxDriveRPM": 6080.0,
+  "driveMotor": "FALCONFOC_60A",
+  "wheelCOF": 1.0
 }

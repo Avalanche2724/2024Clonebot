@@ -95,6 +95,8 @@ public class RobotContainer {
               double forward = Math.sin(leftJoystickAngle) * leftJoystickDist;
               double left = -(Math.cos(leftJoystickAngle) * leftJoystickDist);
 
+              // right trigger: P control towards
+
               return drivetrain
                   .drive
                   .withVelocityX( // Drive forward with negative Y (forward)
@@ -114,13 +116,18 @@ public class RobotContainer {
     return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
   }
 
+  // TODO investigate
+ /*public Command intakeUntilNoteHoldIntake() {
+    return intake.intakeCmd().alongWith(indexer.softFeedCmd().until(indexer.sensors.noteDetected).andThen(indexer.stopCmd()));
+  }*/
+
   public Command intakeUntilNoteWhileRumble() {
     return intakeUntilNote()
         .alongWith(
             Commands.run(
                 () -> {
                   if (indexer.sensors.noteDetected.getAsBoolean()) { // make this better later
-                    joystick.getHID().setRumble(RumbleType.kLeftRumble, 1);
+                    joystick.getHID().setRumble(RumbleType.kLeftRumble, .6);
                   }
                 }))
         .andThen(Commands.waitSeconds(0.2))
@@ -133,13 +140,18 @@ public class RobotContainer {
         .alongWith(
             // we need to wait a bit otherwise atdesiredspeeds will return true
             // we really could fix this by checking the most recently set speeds and we
-            // should
-            // do this
+            // should do this
             Commands.waitSeconds(0.1)
-                .andThen(Commands.waitUntil(shooter::atDesiredSpeeds).andThen(indexer.feedCmd())));
+                .andThen(Commands.waitUntil(shooter::atDesiredSpeeds).andThen(indexer.feedCmd()))
+                .andThen(Commands.waitSeconds(0.1)));
   }
 
   private void configureNonDriveBindings() {
+
+    intake.intakeCurrentUp.whileTrue(Commands.startEnd(
+        () -> joystick.getHID().setRumble(RumbleType.kRightRumble, .6),
+        () -> joystick.getHID().setRumble(RumbleType.kRightRumble, 0)
+    ));
     // Driver bindings:
     // Start button: Eject
     joystick.start().whileTrue(indexer.ejectCmd().alongWith(intake.ejectCmd()));
@@ -178,7 +190,12 @@ public class RobotContainer {
 
   public Command getAutonomousCommand() {
     // return drivetrain.getAutoPath("autopath");
-    return Commands.print("No autonomous command configured");
+    // return Commands.print("No autonomous command configured");
+    return shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds).andThen(
+            Commands.run(drivetrain::resetGyroToForwardFromOperatorPointOfView))
+        .andThen(drivetrain.applyRequest(() ->
+                drivetrain.drive.withVelocityX(-2).withVelocityY(0).withRotationalRate(0))
+            .raceWith(Commands.waitSeconds(.5)));
   }
 
   private void configureSysIDBindings(SysIdRoutine routine) {
@@ -204,17 +221,21 @@ public class RobotContainer {
     var pose = photon.getEstimatedGlobalPose();
 
     if (pose.isPresent()) {
-      // System.out.println("Pose: " + pose.get().estimatedPose.toString());
+
       var p = pose.get();
       var pose3d = p.estimatedPose;
       var pose2d = pose3d.toPose2d();
+
+      System.out.println("Pose: " + pose3d);
+      System.out.println("Pose2d: " + pose2d);
+
       if (Math.abs(pose3d.getZ()) > 0.2) {
         return;
       }
       if (pose3d.getY() < 0 || pose3d.getX() < 0) {
         return;
       }
-
+// todo get more accurate dimensions for field
       if (pose2d.getY() > 15 || pose2d.getX() > 15) {
         return;
       }
@@ -223,9 +244,9 @@ public class RobotContainer {
       for (var target : p.targetsUsed) {
         maxArea = Math.max(target.getArea(), maxArea);
       }
-      /*if (maxArea < 500 ) { //pixels
+      if (maxArea < 200) { //pixels
         return;
-      }*/
+      }
 
       // System.out.println("Pose passed " + maxArea);
       drivetrain.addVisionMeasurement(pose2d, p.timestampSeconds);

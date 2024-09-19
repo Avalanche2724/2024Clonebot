@@ -25,10 +25,7 @@ public class Photon {
                 0.0,
                 Units.inchesToMeters(11.75)), //  approximation, fix later
             new Rotation3d(
-                0, 30, // idk
-                0)); // Cam mounted facing forward, half a meter forward of center, half a meter up
-    // from center.
-
+                0, Math.toRadians(-30), 0));
     // Construct PhotonPoseEstimator
     photonPoseEstimator =
         new PhotonPoseEstimator(

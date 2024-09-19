@@ -33,7 +33,7 @@ public class Intake extends SubsystemBase {
 
   private final LinearFilter averageCurrent = LinearFilter.movingAverage(4);
   public final Trigger intakeCurrentUp =
-      new Trigger(() -> averageCurrent.lastValue() > 10).debounce(0.5, DebounceType.kFalling);
+      new Trigger(() -> averageCurrent.lastValue() > 15).debounce(0.2, DebounceType.kBoth);
 
   public Intake() {
     motor.getConfigurator().apply(MOTOR_CONFIG);
