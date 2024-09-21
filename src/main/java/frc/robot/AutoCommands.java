@@ -18,9 +18,9 @@ public class AutoCommands {
   }
 
   public static Command superShoot() {
-    return bot.preventStuckNote().raceWith(
-        Commands.waitSeconds(2)
-    ).andThen(bot.shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds)); // make better later
+    return bot.preventStuckNote()
+        .raceWith(Commands.waitSeconds(2))
+        .andThen(bot.shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds)); // make better later
   }
 
   public static void register() {
