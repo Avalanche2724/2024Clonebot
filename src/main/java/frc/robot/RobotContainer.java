@@ -139,7 +139,7 @@ public class RobotContainer {
             // we need to wait a bit otherwise atdesiredspeeds will return true
             // we really could fix this by checking the most recently set speeds and we
             // should do this
-            Commands.waitSeconds(0.1)
+            Commands.waitSeconds(0.12)
                 .andThen(
                     Commands.waitUntil(
                             shooter::atDesiredSpeeds
@@ -156,18 +156,19 @@ public class RobotContainer {
 
   public Command preventStuckNote() {
     // alternate between eject and intake in hopes of resolving issues
-    return intake
-        .intakeCmd()
-        .alongWith(indexer.softFeedCmd())
-        .until(intake.intakeCurrentUp2.or(indexer.sensors.noteDetected))
-        .andThen(
-            bothEject()
-                .raceWith(Commands.waitSeconds(0.09))
-                .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.6))))
-        .repeatedly()
-        .until(indexer.sensors.noteDetected)
-        .andThen(
-            intake.stopCmd().alongWith(indexer.stopCmd()).raceWith(Commands.waitSeconds(0.03)));
+    return (intake
+            .intakeCmd()
+            .alongWith(indexer.softFeedCmd())
+            .until(intake.intakeCurrentUp2.or(indexer.sensors.noteDetected))
+            .andThen(
+                bothEject()
+                    .raceWith(Commands.waitSeconds(0.09))
+                    .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.6))))
+            .repeatedly()
+            .until(indexer.sensors.noteDetected)
+            .andThen(
+                intake.stopCmd().alongWith(indexer.stopCmd()).raceWith(Commands.waitSeconds(0.03))))
+        .onlyIf(indexer.sensors.noteDetected.negate());
   }
 
   public Command setShootSpeedCmd(ShootingSpeed sp) {

@@ -10,7 +10,7 @@ public class AutoCommands {
   public static RobotContainer bot;
 
   public static Command intake() {
-    return bot.intakeUntilNote();
+    return bot.intakeUntilNote().andThen(Commands.run(() -> {}));
   }
 
   public static Command shoot() {

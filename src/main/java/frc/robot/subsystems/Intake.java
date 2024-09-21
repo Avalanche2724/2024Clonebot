@@ -83,7 +83,7 @@ public class Intake extends SubsystemBase {
   }
 
   public enum Output { // in units of volts
-    INTAKE(3.3),
+    INTAKE(3.5),
     // SUPERINTAKE(9),
     EJECT(-6),
     STOP(0);
