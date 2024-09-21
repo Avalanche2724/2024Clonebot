@@ -77,7 +77,7 @@ public class Indexer extends SubsystemBase {
 
   // TODO: investigate using velocity, supply limits, current detection, simulation
   public enum Output { // in units of volts
-    SOFTFEED(5),
+    SOFTFEED(8),
     FEED(9),
     EJECT(-6),
     STOP(0);

@@ -35,6 +35,8 @@ public class Intake extends SubsystemBase {
   private double linearFilterLastValue = 0;
   public final Trigger intakeCurrentUp =
       new Trigger(() -> linearFilterLastValue > 15).debounce(0.2, DebounceType.kBoth);
+  public final Trigger intakeCurrentUp2 =
+      new Trigger(() -> linearFilterLastValue > 15).debounce(0.35, DebounceType.kBoth);
 
   public Intake() {
     motor.getConfigurator().apply(MOTOR_CONFIG);
@@ -68,6 +70,10 @@ public class Intake extends SubsystemBase {
     return motorSpeedCmd(Output.INTAKE);
   }
 
+  //public Command superIntakeCmd() {
+  //  return motorSpeedCmd(Output.SUPERINTAKE);
+  //}
+
   public Command ejectCmd() {
     return motorSpeedCmd(Output.EJECT);
   }
@@ -77,7 +83,8 @@ public class Intake extends SubsystemBase {
   }
 
   public enum Output { // in units of volts
-    INTAKE(8),
+    INTAKE(3),
+    //SUPERINTAKE(9),
     EJECT(-6),
     STOP(0);
 

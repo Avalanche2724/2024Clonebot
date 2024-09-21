@@ -111,6 +111,10 @@ public class RobotContainer {
     return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
   }
 
+  /*public Command superIntakeUntilNote() {
+    return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
+  }*/
+
   // TODO investigate whether this would be helpful
   /*public Command intakeUntilNoteHoldIntake() {
     return intake.intakeCmd().alongWith(indexer.softFeedCmd().until(indexer.sensors.noteDetected).andThen(indexer.stopCmd()));
@@ -145,7 +149,7 @@ public class RobotContainer {
                     Commands.waitUntil(
                             shooter::atDesiredSpeeds
                             //  () -> true // used for testing autos during simulation
-                            )
+                        )
                         .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(1)))))
         .raceWith(Commands.waitSeconds(5))
         .andThen(shooter.stopCmd().raceWith(Commands.waitSeconds(0.05)));
@@ -157,10 +161,16 @@ public class RobotContainer {
 
   public Command preventStuckNote() {
     // alternate between eject and intake in hopes of resolving issues
-    return (bothEject()
-            .raceWith(Commands.waitSeconds(0.08))
-            .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.9))))
-        .repeatedly();
+    return intake
+        .intakeCmd()
+        .alongWith(indexer.softFeedCmd())
+        .until(intake.intakeCurrentUp2.or(indexer.sensors.noteDetected))
+        .andThen(
+            bothEject()
+                .raceWith(Commands.waitSeconds(0.08))
+                .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.6))))
+        .repeatedly()
+        .until(indexer.sensors.noteDetected);
   }
 
   public Command setShootSpeedCmd(ShootingSpeed sp) {

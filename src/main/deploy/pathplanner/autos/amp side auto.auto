@@ -3,9 +3,9 @@
   "startingPose": {
     "position": {
       "x": 0.88,
-      "y": 6.63
+      "y": 6.69
     },
-    "rotation": -120.0
+    "rotation": -130.0
   },
   "command": {
     "type": "sequential",
@@ -24,7 +24,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "amp side score"
+                  "pathName": "better amp side score"
                 }
               },
               {
