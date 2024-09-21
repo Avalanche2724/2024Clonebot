@@ -44,7 +44,7 @@ public class RobotContainer {
   public final Photon photon = new Photon();
   // Bindings
   private final CommandXboxController joystick = new CommandXboxController(0);
-  private Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
+  public Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
   private final DoubleUnaryOperator stickDeadband = (val) -> MathUtil.applyDeadband(val, 0.10);
   // Other stuff
   private final Telemetry logger = new Telemetry(drivetrain.MaxSpeed);
@@ -146,7 +146,7 @@ public class RobotContainer {
                             shooter::atDesiredSpeeds
                             //  () -> true // used for testing autos during simulation
                             )
-                        .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(0.7)))))
+                        .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(1)))))
         .raceWith(Commands.waitSeconds(5))
         .andThen(shooter.stopCmd().raceWith(Commands.waitSeconds(0.05)));
   }
@@ -158,8 +158,8 @@ public class RobotContainer {
   public Command preventStuckNote() {
     // alternate between eject and intake in hopes of resolving issues
     return (bothEject()
-            .raceWith(Commands.waitSeconds(0.1))
-            .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.45))))
+            .raceWith(Commands.waitSeconds(0.08))
+            .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.9))))
         .repeatedly();
   }
 

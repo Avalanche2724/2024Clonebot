@@ -28,7 +28,7 @@ public class Shooter extends SubsystemBase {
                   .withInverted(InvertedValue.Clockwise_Positive))
           .withSlot0(new Slot0Configs().withKS(0.195).withKV(0.126).withKP(0.377).withKA(0.0127));
   private static final TalonFXConfiguration MOTOR_CONFIG_BOTTOM = MOTOR_CONFIG_TOP;
-  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = 2; // rotations per second
+  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = .6; // rotations per second
 
   private final TalonFX topMotor;
   private final TalonFX bottomMotor;
