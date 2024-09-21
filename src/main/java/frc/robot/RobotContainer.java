@@ -145,11 +145,9 @@ public class RobotContainer {
                     Commands.waitUntil(
                             shooter::atDesiredSpeeds
                             //  () -> true // used for testing autos during simulation
-                        )
-                        .andThen(
-                            fullIndexerAndIntakeFeed()
-                                .raceWith(Commands.waitSeconds(0.7))))
-        ).raceWith(Commands.waitSeconds(5))
+                            )
+                        .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(0.7)))))
+        .raceWith(Commands.waitSeconds(5))
         .andThen(shooter.stopCmd().raceWith(Commands.waitSeconds(0.05)));
   }
 
@@ -160,8 +158,8 @@ public class RobotContainer {
   public Command preventStuckNote() {
     // alternate between eject and intake in hopes of resolving issues
     return (bothEject()
-        .raceWith(Commands.waitSeconds(0.1))
-        .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.45))))
+            .raceWith(Commands.waitSeconds(0.1))
+            .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.45))))
         .repeatedly();
   }
 
