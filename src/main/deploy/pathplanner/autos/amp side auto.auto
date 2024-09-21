@@ -39,7 +39,32 @@
         {
           "type": "named",
           "data": {
-            "name": "shoot"
+            "name": "superShoot"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "better long side score"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "intake"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "superShoot"
           }
         }
       ]

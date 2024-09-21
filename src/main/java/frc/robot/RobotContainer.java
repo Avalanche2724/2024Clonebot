@@ -162,10 +162,12 @@ public class RobotContainer {
         .until(intake.intakeCurrentUp2.or(indexer.sensors.noteDetected))
         .andThen(
             bothEject()
-                .raceWith(Commands.waitSeconds(0.08))
+                .raceWith(Commands.waitSeconds(0.09))
                 .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.6))))
         .repeatedly()
-        .until(indexer.sensors.noteDetected);
+        .until(indexer.sensors.noteDetected)
+        .andThen(
+            intake.stopCmd().alongWith(indexer.stopCmd()).raceWith(Commands.waitSeconds(0.03)));
   }
 
   public Command setShootSpeedCmd(ShootingSpeed sp) {
