@@ -11,7 +11,10 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.GenericHID.RumbleType;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
@@ -23,6 +26,7 @@ import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Shooter.ShootingSpeed;
 import frc.robot.subsystems.Shooter.ShootingSpeed.Speeds;
+import java.nio.file.Files;
 import java.util.Map;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Supplier;
@@ -32,18 +36,16 @@ public class RobotContainer {
   public final Shooter shooter = new Shooter();
   public final Indexer indexer = new Indexer();
   public final Intake intake = new Intake();
-  // why is this instantiated statically???? whose idea was this
-  // i feel like this will cause some sort of weird issue in the future
+  // It seems kinda weird that CTRE instantiates this statically
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain;
   // Other stuff
   private static final boolean doSysID = false;
   private final SysIdRoutine routine = null; // drivetrain.sysId.routineToApply;
-
   public final Photon photon = new Photon();
-
   // Bindings
   private final CommandXboxController joystick = new CommandXboxController(0);
   private Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
+  private final DoubleUnaryOperator stickDeadband = (val) -> MathUtil.applyDeadband(val, 0.10);
   // Other stuff
   private final Telemetry logger = new Telemetry(drivetrain.MaxSpeed);
 
@@ -66,6 +68,10 @@ public class RobotContainer {
       drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
     }
     drivetrain.registerTelemetry(logger::telemeterize);
+
+    populateAutoChooser();
+    SmartDashboard.putData("CHOOSE AUTO!!!", chooser);
+    // SmartDashboard.put
   }
 
   private void configureDriveBindings() {
@@ -75,22 +81,11 @@ public class RobotContainer {
               double joystickY = -joystick.getLeftY();
               double joystickX = joystick.getLeftX();
               double rot = -joystick.getRightX();
-
-              /*DoubleUnaryOperator transformThing = (val) -> // uses a polynomial to scale input
-              // this also applies deadbands
-              Math.abs(val) < 0.1
-                  ? 0
-                  : Math.copySign(Math.pow(val, 2), val) * 0.5 + val * 0.5;*/
-              // : val;
-
-              // applies deadbands, could potentially be used for polynomial input scaling later
-              DoubleUnaryOperator transformThing = (val) -> MathUtil.applyDeadband(val, 0.10);
-
               double leftJoystickAngle = Math.atan2(joystickY, joystickX);
               double leftJoystickDist = Math.hypot(joystickX, joystickY);
 
-              rot = transformThing.applyAsDouble(rot);
-              leftJoystickDist = transformThing.applyAsDouble(leftJoystickDist);
+              rot = stickDeadband.applyAsDouble(rot);
+              leftJoystickDist = stickDeadband.applyAsDouble(leftJoystickDist);
 
               double forward = Math.sin(leftJoystickAngle) * leftJoystickDist;
               double left = -(Math.cos(leftJoystickAngle) * leftJoystickDist);
@@ -116,8 +111,8 @@ public class RobotContainer {
     return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
   }
 
-  // TODO investigate
- /*public Command intakeUntilNoteHoldIntake() {
+  // TODO investigate whether this would be helpful
+  /*public Command intakeUntilNoteHoldIntake() {
     return intake.intakeCmd().alongWith(indexer.softFeedCmd().until(indexer.sensors.noteDetected).andThen(indexer.stopCmd()));
   }*/
 
@@ -127,75 +122,92 @@ public class RobotContainer {
             Commands.run(
                 () -> {
                   if (indexer.sensors.noteDetected.getAsBoolean()) { // make this better later
-                    joystick.getHID().setRumble(RumbleType.kLeftRumble, .6);
+                    joystick.getHID().setRumble(RumbleType.kLeftRumble, .4);
                   }
                 }))
         .andThen(Commands.waitSeconds(0.2))
         .finallyDo(() -> joystick.getHID().setRumble(RumbleType.kLeftRumble, 0));
   }
 
+  public Command fullIndexerAndIntakeFeed() {
+    return indexer.feedCmd().alongWith(intake.intakeCmd());
+  }
+
   public Command shootyShoot(Supplier<Speeds> speedy) {
     return shooter
         .speedCmd(speedy)
-        .alongWith(
+        .raceWith(
             // we need to wait a bit otherwise atdesiredspeeds will return true
             // we really could fix this by checking the most recently set speeds and we
             // should do this
             Commands.waitSeconds(0.1)
-                .andThen(Commands.waitUntil(shooter::atDesiredSpeeds).andThen(indexer.feedCmd()))
-                .andThen(Commands.waitSeconds(0.1)));
+                .andThen(
+                    Commands.waitUntil(
+                            shooter::atDesiredSpeeds
+                            //  () -> true // used for testing autos during simulation
+                        )
+                        .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(0.6)))))
+        .andThen(shooter.stopCmd().raceWith(Commands.waitSeconds(0.05)));
+  }
+
+  public Command bothEject() {
+    return indexer.ejectCmd().alongWith(intake.ejectCmd());
+  }
+
+  public Command preventStuckNote() {
+    // alternate between eject and intake in hopes of resolving issues
+    return (bothEject()
+        .raceWith(Commands.waitSeconds(0.35))
+        .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.45))))
+        .repeatedly();
+  }
+
+  public Command setShootSpeedCmd(ShootingSpeed sp) {
+    return Commands.runOnce(() -> plannedShootSpeed = sp);
   }
 
   private void configureNonDriveBindings() {
 
-    intake.intakeCurrentUp.whileTrue(Commands.startEnd(
-        () -> joystick.getHID().setRumble(RumbleType.kRightRumble, .6),
-        () -> joystick.getHID().setRumble(RumbleType.kRightRumble, 0)
-    ));
+    intake.intakeCurrentUp.whileTrue(
+        Commands.startEnd(
+            () -> joystick.getHID().setRumble(RumbleType.kRightRumble, .4),
+            () -> joystick.getHID().setRumble(RumbleType.kRightRumble, 0)));
     // Driver bindings:
     // Start button: Eject
-    joystick.start().whileTrue(indexer.ejectCmd().alongWith(intake.ejectCmd()));
+    joystick.start().whileTrue(bothEject());
 
+    // joystick.leftTrigger().whileTrue
     // Left bumper: Intake
     joystick.leftBumper().whileTrue(intakeUntilNoteWhileRumble());
     // Right bumper: Shoot
     joystick.rightBumper().whileTrue(shootyShoot(() -> plannedShootSpeed.speeds));
-
+    // Right trigger: Spin up shoot speed without shooting
+    joystick.rightTrigger().whileTrue(shooter.speedCmd(() -> plannedShootSpeed.speeds));
     // A AMP
-    joystick
-        .a()
-        .onTrue(
-            Commands.runOnce(
-                () -> {
-                  plannedShootSpeed = Shooter.ShootingSpeed.AMP;
-                }));
+    joystick.a().onTrue(setShootSpeedCmd(ShootingSpeed.AMP));
     // B: Shooter
-    joystick
-        .b()
-        .onTrue(
-            Commands.runOnce(
-                () -> {
-                  plannedShootSpeed = Shooter.ShootingSpeed.SUBWOOFER;
-                }));
+    joystick.b().onTrue(setShootSpeedCmd(ShootingSpeed.SUBWOOFER));
 
+    // Y: Shooter
+    joystick.y().onTrue(setShootSpeedCmd(ShootingSpeed.FARTHERSHOT));
     // X: Shooter
-    joystick
-        .x()
-        .onTrue(
-            Commands.runOnce(
-                () -> {
-                  plannedShootSpeed = ShootingSpeed.PODIUM;
-                }));
+    joystick.x().onTrue(setShootSpeedCmd(ShootingSpeed.LINESHOT));
   }
 
   public Command getAutonomousCommand() {
     // return drivetrain.getAutoPath("autopath");
     // return Commands.print("No autonomous command configured");
-    return shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds).andThen(
-            Commands.run(drivetrain::resetGyroToForwardFromOperatorPointOfView))
-        .andThen(drivetrain.applyRequest(() ->
-                drivetrain.drive.withVelocityX(-2).withVelocityY(0).withRotationalRate(0))
-            .raceWith(Commands.waitSeconds(.5)));
+    /*return shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds)
+    .raceWith(Commands.waitSeconds(3))
+    .andThen(Commands.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView))
+    .andThen(
+        drivetrain
+            .applyRequest(
+                () ->
+                    drivetrain.drive.withVelocityX(1.5).withVelocityY(0).withRotationalRate(0))
+            .raceWith(Commands.waitSeconds(4)));*/
+    // return drivetrain.getAutoPath("left score auto");
+    return chooser.getSelected();
   }
 
   private void configureSysIDBindings(SysIdRoutine routine) {
@@ -226,16 +238,16 @@ public class RobotContainer {
       var pose3d = p.estimatedPose;
       var pose2d = pose3d.toPose2d();
 
-      System.out.println("Pose: " + pose3d);
-      System.out.println("Pose2d: " + pose2d);
+      SmartDashboard.putString("vision pose: ", pose3d.toString());
+      SmartDashboard.putString("vision pose2d: ", pose2d.toString());
 
-      if (Math.abs(pose3d.getZ()) > 0.2) {
+      if (Math.abs(pose3d.getZ()) > 0.1) {
         return;
       }
       if (pose3d.getY() < 0 || pose3d.getX() < 0) {
         return;
       }
-// todo get more accurate dimensions for field
+      // todo get more accurate dimensions for field
       if (pose2d.getY() > 15 || pose2d.getX() > 15) {
         return;
       }
@@ -244,12 +256,45 @@ public class RobotContainer {
       for (var target : p.targetsUsed) {
         maxArea = Math.max(target.getArea(), maxArea);
       }
-      if (maxArea < 200) { //pixels
+      if (maxArea < 200) { // pixels
         return;
       }
 
       // System.out.println("Pose passed " + maxArea);
       drivetrain.addVisionMeasurement(pose2d, p.timestampSeconds);
+    }
+  }
+
+  SendableChooser<Command> chooser = new SendableChooser<>();
+
+  private void populateAutoChooser() {
+    var deployDir = Filesystem.getDeployDirectory();
+    chooser.addOption("nothing", Commands.none());
+    chooser.addOption("shoot", AutoCommands.shoot());
+    if (Robot.isSimulation()) {
+      chooser.setDefaultOption("amp auto", drivetrain.getAutoPath("amp side auto"));
+    }
+
+    try {
+      System.out.println("PATH " + deployDir.toPath().resolve("pathplanner/autos").toString());
+      // Automatically list all the paths and add them all!
+      Files.list(deployDir.toPath().resolve("pathplanner/autos"))
+          .sorted()
+          .filter(file -> !file.toString().contains("unused"))
+          .forEach(
+              file -> {
+                try {
+                  var name = file.getName(file.getNameCount() - 1).toString().replace(".auto", "");
+                  chooser.addOption(name, drivetrain.getAutoPath(name));
+                } catch (Exception e) {
+                  SmartDashboard.putString("ERROR LOADING " + file, e.getMessage());
+                }
+              });
+    } catch (Exception e) {
+      // Add manually, even though this should literally never happen
+      // Maybe it will happen, though?
+      SmartDashboard.putString("WARNING", "UNABLE TO AUTOMATICALLY DO AUTOS");
+      e.printStackTrace();
     }
   }
 }

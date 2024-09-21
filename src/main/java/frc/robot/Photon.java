@@ -24,8 +24,7 @@ public class Photon {
                 Units.inchesToMeters(3.3125),
                 0.0,
                 Units.inchesToMeters(11.75)), //  approximation, fix later
-            new Rotation3d(
-                0, Math.toRadians(-30), 0));
+            new Rotation3d(0, Math.toRadians(-30), 0));
     // Construct PhotonPoseEstimator
     photonPoseEstimator =
         new PhotonPoseEstimator(

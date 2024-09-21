@@ -25,15 +25,16 @@ public class Intake extends SubsystemBase {
                   .withInverted(InvertedValue.Clockwise_Positive))
           .withCurrentLimits(
               new CurrentLimitsConfigs()
-                  .withStatorCurrentLimit(50) // basically chosen based on guessing™
+                  .withStatorCurrentLimit(40) // basically chosen based on randomly guessing™
                   .withStatorCurrentLimitEnable(true));
 
   private final TalonFX motor = new TalonFX(TALONFX_ID);
   private final VoltageOut control = new VoltageOut(0).withEnableFOC(true);
 
   private final LinearFilter averageCurrent = LinearFilter.movingAverage(4);
+  private double linearFilterLastValue = 0;
   public final Trigger intakeCurrentUp =
-      new Trigger(() -> averageCurrent.lastValue() > 15).debounce(0.2, DebounceType.kBoth);
+      new Trigger(() -> linearFilterLastValue > 15).debounce(0.2, DebounceType.kBoth);
 
   public Intake() {
     motor.getConfigurator().apply(MOTOR_CONFIG);
@@ -44,8 +45,10 @@ public class Intake extends SubsystemBase {
 
   public void periodic() {
     double current = motor.getStatorCurrent().getValueAsDouble();
-    SmartDashboard.putNumber("Intake: Motor Stator Current", current);
-    SmartDashboard.putNumber("Intake: Avg Current", averageCurrent.calculate(current));
+    SmartDashboard.putNumber(
+        "Intake avg current", linearFilterLastValue = averageCurrent.calculate(current));
+    SmartDashboard.putNumber("Intake velocity", motor.getVelocity().getValueAsDouble());
+    SmartDashboard.putNumber("Intake voltage", motor.getMotorVoltage().getValueAsDouble());
   }
 
   private void setMotor(double volts) {

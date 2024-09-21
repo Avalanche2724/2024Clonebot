@@ -29,12 +29,6 @@ public class Shooter extends SubsystemBase {
           .withSlot0(new Slot0Configs().withKS(0.195).withKV(0.126).withKP(0.377).withKA(0.0127));
   private static final TalonFXConfiguration MOTOR_CONFIG_BOTTOM = MOTOR_CONFIG_TOP;
   private static final double CLOSED_LOOP_ALLOWABLE_ERROR = 2; // rotations per second
-  /*
-  static {
-    //MOTOR_CONFIG_BOTTOM.deserialize(
-    //    MOTOR_CONFIG_TOP.serialize()); // clone configs from top to bottom // this did not work, look at later;
-    //MOTOR_CONFIG_BOTTOM.Slot0.withKS(0.195).withKV(0.126).withKP(0.377).withKA(0.0127);
-  }*/
 
   private final TalonFX topMotor;
   private final TalonFX bottomMotor;
@@ -54,8 +48,6 @@ public class Shooter extends SubsystemBase {
   }
 
   private void motorStop() {
-    /* topMotor.setControl(controlTop.withVelocity(0));
-    bottomMotor.setControl(controlBottom.withVelocity(0));*/
     topMotor.set(0);
     bottomMotor.set(0);
   }
@@ -66,10 +58,7 @@ public class Shooter extends SubsystemBase {
             < CLOSED_LOOP_ALLOWABLE_ERROR;
   }
 
-  // private ShootingSpeed.Speeds targetSpeeds; // unused, remove later
-
   private void runWithSpeed(Speeds speed) {
-    // targetSpeeds = speed;
     topMotor.setControl(controlTop.withVelocity(speed.top / 60)); // we need 2 refactor later
     bottomMotor.setControl(controlBottom.withVelocity(speed.bottom / 60));
   }
@@ -79,7 +68,7 @@ public class Shooter extends SubsystemBase {
   }
 
   public Command speedCmd(
-      Supplier<Speeds> speed) { // we should probably change this but we can do that LATER
+      Supplier<Speeds> speed) { // We should probably change this but that can be done later
     return run(() -> runWithSpeed(speed.get()));
   }
 
@@ -88,14 +77,21 @@ public class Shooter extends SubsystemBase {
   }
 
   public void periodic() {
-    SmartDashboard.putNumber("cle top", topMotor.getClosedLoopError().getValueAsDouble());
-    SmartDashboard.putNumber("cle bottom", bottomMotor.getClosedLoopError().getValueAsDouble());
+    SmartDashboard.putNumber(
+        "Shooter closed loop error top", topMotor.getClosedLoopError().getValueAsDouble());
+    SmartDashboard.putNumber(
+        "Shooter closed loop error bottom", bottomMotor.getClosedLoopError().getValueAsDouble());
+    SmartDashboard.putNumber("Shooter velocity top", topMotor.getVelocity().getValueAsDouble());
+    SmartDashboard.putNumber(
+        "Shooter velocity bottom", bottomMotor.getVelocity().getValueAsDouble());
   }
 
   public enum ShootingSpeed {
-    AMP(new Speeds(350, 950)),
-    SUBWOOFER(new Speeds(1800, 3600)),
-    PODIUM(new Speeds(3500, 1600));
+    AMP(new Speeds(400, 1000)),
+    SUBWOOFER(new Speeds(2000, 4000)),
+    LINESHOT(new Speeds(4000, 1800)),
+    FARTHERSHOT(new Speeds(5600, 1450));
+
     public Speeds speeds;
 
     ShootingSpeed(Speeds speeds) {

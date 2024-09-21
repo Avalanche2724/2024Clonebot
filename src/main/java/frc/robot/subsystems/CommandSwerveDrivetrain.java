@@ -13,7 +13,6 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest.FieldCentric;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.PathPlannerAuto;
-import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.HolonomicPathFollowerConfig;
 import com.pathplanner.lib.util.PIDConstants;
 import com.pathplanner.lib.util.ReplanningConfig;
@@ -42,8 +41,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
   // Stuff for controls:
   public static final double MaxSpeed =
       TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed
-  public static final double MaxAngularRate =
-      1.5 * Math.PI; // 3/4 of a rotation per second max angular velocity
+  public static final double MaxAngularRate = 2.5 * Math.PI;
   public final FieldCentricButBetter drive =
       (FieldCentricButBetter)
           new FieldCentricButBetter()
@@ -165,10 +163,10 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
         this); // Subsystem for requirements
   }
 
-  public void followPathCommand(String pathName) {
+  /*public void followPathCommand(String pathName) { // ignore this
     PathPlannerPath path = PathPlannerPath.fromPathFile(pathName);
-    // path = TODO!!!!!!!!!!!
-  }
+    // path =
+  }*/
 
   public Command getAutoPath(String pathName) {
     return new PathPlannerAuto(pathName);
@@ -247,7 +245,7 @@ public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsyst
             (volts) -> setControl(SteerCharacterization.withVolts(volts)));
 
     /* Change this to the sysid routine you want to test */
-    public final SysIdRoutine routineToApply = SysIdRoutineTranslation;
+    public final SysIdRoutine routineToApply = SysIdRoutineRotation;
   }
 
   public SysIdStuff sysId = new SysIdStuff();

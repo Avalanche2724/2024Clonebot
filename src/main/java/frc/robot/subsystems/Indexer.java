@@ -8,6 +8,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -66,10 +67,17 @@ public class Indexer extends SubsystemBase {
     return motorSpeedCmd(Output.STOP);
   }
 
-  // TODO also: Make the sensors able to be disabled individually
+  public void periodic() {
+    SmartDashboard.putNumber("Indexer velocity", motor.getVelocity().getValueAsDouble());
+    SmartDashboard.putNumber("Indexer voltage", motor.getMotorVoltage().getValueAsDouble());
+    SmartDashboard.putNumber("Indexer voltage", motor.getMotorVoltage().getValueAsDouble());
+    SmartDashboard.putBoolean("Left trigger", sensors.leftTrigger.getAsBoolean());
+    SmartDashboard.putBoolean("Right trigger", sensors.rightTrigger.getAsBoolean());
+  }
+
   // TODO: investigate using velocity, supply limits, current detection, simulation
   public enum Output { // in units of volts
-    SOFTFEED(7),
+    SOFTFEED(6.5),
     FEED(9),
     EJECT(-6),
     STOP(0);
@@ -85,9 +93,6 @@ public class Indexer extends SubsystemBase {
     public DigitalInput leftSensor = new DigitalInput(LEFT_SENSOR);
     public DigitalInput rightSensor = new DigitalInput(RIGHT_SENSOR);
 
-    public boolean leftSensorEnable = true;
-    public boolean rightSensorEnable = true;
-
     /** True if left index sensor detects something */
     public Trigger leftTrigger = new Trigger(leftSensor::get).negate();
 
@@ -95,7 +100,6 @@ public class Indexer extends SubsystemBase {
     public Trigger rightTrigger = new Trigger(rightSensor::get).negate();
 
     /** True if a note is detected in the indexer */
-    public Trigger noteDetected =
-        leftTrigger.and(() -> leftSensorEnable).or(rightTrigger.and(() -> rightSensorEnable));
+    public Trigger noteDetected = leftTrigger.and(rightTrigger);
   }
 }
