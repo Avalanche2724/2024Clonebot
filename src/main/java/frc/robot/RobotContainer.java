@@ -146,7 +146,10 @@ public class RobotContainer {
                             shooter::atDesiredSpeeds
                             //  () -> true // used for testing autos during simulation
                         )
-                        .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(0.6)))))
+                        .andThen(
+                            fullIndexerAndIntakeFeed()
+                                .raceWith(Commands.waitSeconds(0.7))))
+        ).raceWith(Commands.waitSeconds(5))
         .andThen(shooter.stopCmd().raceWith(Commands.waitSeconds(0.05)));
   }
 
@@ -157,7 +160,7 @@ public class RobotContainer {
   public Command preventStuckNote() {
     // alternate between eject and intake in hopes of resolving issues
     return (bothEject()
-        .raceWith(Commands.waitSeconds(0.35))
+        .raceWith(Commands.waitSeconds(0.1))
         .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.45))))
         .repeatedly();
   }
@@ -181,6 +184,8 @@ public class RobotContainer {
     joystick.leftBumper().whileTrue(intakeUntilNoteWhileRumble());
     // Right bumper: Shoot
     joystick.rightBumper().whileTrue(shootyShoot(() -> plannedShootSpeed.speeds));
+    // Left trigger: Unstuck note
+    joystick.leftTrigger().whileTrue(preventStuckNote());
     // Right trigger: Spin up shoot speed without shooting
     joystick.rightTrigger().whileTrue(shooter.speedCmd(() -> plannedShootSpeed.speeds));
     // A AMP
