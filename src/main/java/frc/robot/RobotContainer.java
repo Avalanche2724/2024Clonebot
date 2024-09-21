@@ -6,7 +6,6 @@ package frc.robot;
 
 import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.Utils;
-import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -27,7 +26,6 @@ import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Shooter.ShootingSpeed;
 import frc.robot.subsystems.Shooter.ShootingSpeed.Speeds;
 import java.nio.file.Files;
-import java.util.Map;
 import java.util.function.DoubleUnaryOperator;
 import java.util.function.Supplier;
 
@@ -58,10 +56,7 @@ public class RobotContainer {
     }
 
     AutoCommands.bot = this;
-    NamedCommands.registerCommands(
-        Map.of(
-            "shoot", AutoCommands.shoot(),
-            "intake", AutoCommands.intake()));
+    AutoCommands.register();
     drivetrain.configurePathPlanner();
 
     if (Utils.isSimulation()) {

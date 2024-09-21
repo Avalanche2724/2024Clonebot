@@ -70,9 +70,9 @@ public class Intake extends SubsystemBase {
     return motorSpeedCmd(Output.INTAKE);
   }
 
-  //public Command superIntakeCmd() {
+  // public Command superIntakeCmd() {
   //  return motorSpeedCmd(Output.SUPERINTAKE);
-  //}
+  // }
 
   public Command ejectCmd() {
     return motorSpeedCmd(Output.EJECT);
@@ -83,8 +83,8 @@ public class Intake extends SubsystemBase {
   }
 
   public enum Output { // in units of volts
-    INTAKE(3),
-    //SUPERINTAKE(9),
+    INTAKE(3.3),
+    // SUPERINTAKE(9),
     EJECT(-6),
     STOP(0);
 
