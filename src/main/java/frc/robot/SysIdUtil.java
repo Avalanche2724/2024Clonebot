@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.Consumer;
 
+/** Helper methods for generating sysid routines to prevent repetitive code */
 public class SysIdUtil {
   public static SysIdRoutine generateRoutine(
       Subsystem subsystem, double volts, Consumer<Measure<Voltage>> drive) {

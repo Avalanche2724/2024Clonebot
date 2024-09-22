@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 
+/** Subsystem for indexer (the spinny thingy between the intake and shooter) */
 public class Indexer extends SubsystemBase {
   private static final int TALONFX_ID = 5;
   private static final int LEFT_SENSOR = 0;

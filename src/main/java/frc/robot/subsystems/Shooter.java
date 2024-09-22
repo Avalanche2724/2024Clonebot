@@ -28,7 +28,7 @@ public class Shooter extends SubsystemBase {
                   .withInverted(InvertedValue.Clockwise_Positive))
           .withSlot0(new Slot0Configs().withKS(0.195).withKV(0.126).withKP(0.377).withKA(0.0127));
   private static final TalonFXConfiguration MOTOR_CONFIG_BOTTOM = MOTOR_CONFIG_TOP;
-  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = .6; // rotations per second
+  private static final double CLOSED_LOOP_ALLOWABLE_ERROR = .5; // rotations per second
 
   private final TalonFX topMotor;
   private final TalonFX bottomMotor;
@@ -41,6 +41,10 @@ public class Shooter extends SubsystemBase {
     bottomMotor = new TalonFX(TALONFX_ID_BOTTOM);
     topMotor.getConfigurator().apply(MOTOR_CONFIG_TOP);
     bottomMotor.getConfigurator().apply(MOTOR_CONFIG_BOTTOM);
+
+    topMotor.getClosedLoopError().setUpdateFrequency(50);
+    bottomMotor.getClosedLoopError().setUpdateFrequency(50);
+
     controlTop = new VelocityVoltage(0).withSlot(0);
     controlBottom = new VelocityVoltage(0).withSlot(0);
     sysIdRoutine = SysIdUtil.singleMotor(this, topMotor);
@@ -63,12 +67,9 @@ public class Shooter extends SubsystemBase {
     bottomMotor.setControl(controlBottom.withVelocity(speed.bottom / 60));
   }
 
-  public Command speedCmd(Speeds speed) {
-    return speedCmd(() -> speed);
-  }
-
-  public Command speedCmd(
-      Supplier<Speeds> speed) { // We should probably change this but that can be done later
+  // TODO: Change this so that it stops shooter when ends,
+  // would simplify some other command compositions
+  public Command speedCmd(Supplier<Speeds> speed) {
     return run(() -> runWithSpeed(speed.get()));
   }
 

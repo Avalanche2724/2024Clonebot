@@ -10,17 +10,20 @@ public class AutoCommands {
   public static RobotContainer bot;
 
   public static Command intake() {
-    return bot.intakeUntilNote().andThen(Commands.run(() -> {}));
+    return bot.com.intakeUntilNote().andThen(Commands.run(() -> {}));
   }
 
   public static Command shoot() {
-    return bot.shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds); // make better later
+    return bot.com.autoShootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds); // make better later
   }
 
+  // "super shoot" does the fix-stuck-note procedure before shooting
+  // it only sometimes fixes stuck notes, though :C
   public static Command superShoot() {
-    return bot.preventStuckNote()
-        .raceWith(Commands.waitSeconds(2))
-        .andThen(bot.shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds)); // make better later
+    return bot.com
+        .preventStuckNote()
+        .raceWith(Commands.waitSeconds(3))
+        .andThen(bot.com.shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds)); // make better later
   }
 
   public static void register() {

@@ -24,10 +24,8 @@ import frc.robot.subsystems.Indexer;
 import frc.robot.subsystems.Intake;
 import frc.robot.subsystems.Shooter;
 import frc.robot.subsystems.Shooter.ShootingSpeed;
-import frc.robot.subsystems.Shooter.ShootingSpeed.Speeds;
 import java.nio.file.Files;
 import java.util.function.DoubleUnaryOperator;
-import java.util.function.Supplier;
 
 public class RobotContainer {
   // Subsystems
@@ -36,18 +34,22 @@ public class RobotContainer {
   public final Intake intake = new Intake();
   // It seems kinda weird that CTRE instantiates this statically
   public final CommandSwerveDrivetrain drivetrain = TunerConstants.DriveTrain;
+
   // Other stuff
   private static final boolean doSysID = false;
   private final SysIdRoutine routine = null; // drivetrain.sysId.routineToApply;
   public final Photon photon = new Photon();
-  // Bindings
-  private final CommandXboxController joystick = new CommandXboxController(0);
-  public Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
-  private final DoubleUnaryOperator stickDeadband = (val) -> MathUtil.applyDeadband(val, 0.10);
-  // Other stuff
   private final Telemetry logger = new Telemetry(drivetrain.MaxSpeed);
+  public CommonCommands com = new CommonCommands(this);
+  // Bindings
+  public final CommandXboxController joystick = new CommandXboxController(0);
+  public Shooter.ShootingSpeed plannedShootSpeed = Shooter.ShootingSpeed.AMP;
+
+  /** Stick deadband, can also be used to apply polynomial scale to joystick */
+  private final DoubleUnaryOperator stickDeadband = (val) -> MathUtil.applyDeadband(val, 0.10);
 
   public RobotContainer() {
+    // Configure controller
     configureDriveBindings();
     if (doSysID) {
       configureSysIDBindings(routine);
@@ -55,24 +57,25 @@ public class RobotContainer {
       configureNonDriveBindings();
     }
 
+    // Set up drivetrain and auto
     AutoCommands.bot = this;
     AutoCommands.register();
     drivetrain.configurePathPlanner();
-
+    drivetrain.registerTelemetry(logger::telemeterize);
     if (Utils.isSimulation()) {
       drivetrain.seedFieldRelative(new Pose2d(new Translation2d(), Rotation2d.fromDegrees(90)));
     }
-    drivetrain.registerTelemetry(logger::telemeterize);
 
     populateAutoChooser();
     SmartDashboard.putData("CHOOSE AUTO!!!", chooser);
-    // SmartDashboard.put
   }
 
   private void configureDriveBindings() {
     drivetrain.setDefaultCommand( // Drivetrain will execute this command periodically
         drivetrain.applyRequest(
             () -> {
+              // We do a bunch of math here. We used to have a polynomial scale on the magnitude
+              // of the joystick, but right now it is just used for applying deadbands
               double joystickY = -joystick.getLeftY();
               double joystickX = joystick.getLeftX();
               double rot = -joystick.getRightX();
@@ -85,8 +88,6 @@ public class RobotContainer {
               double forward = Math.sin(leftJoystickAngle) * leftJoystickDist;
               double left = -(Math.cos(leftJoystickAngle) * leftJoystickDist);
 
-              // right trigger: P control towards
-
               return drivetrain
                   .drive
                   .withVelocityX( // Drive forward with negative Y (forward)
@@ -96,79 +97,12 @@ public class RobotContainer {
                   .withRotationalRate( // Drive counterclockwise with negative X (left)
                       rot * CommandSwerveDrivetrain.MaxAngularRate);
             }));
+
     // Back button: Recenter gyro
+    // Note that the battery must be at the back of the robot from the driver's POV
     joystick
         .back()
         .onTrue(drivetrain.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView));
-  }
-
-  public Command intakeUntilNote() {
-    return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
-  }
-
-  /*public Command superIntakeUntilNote() {
-    return intake.intakeCmd().alongWith(indexer.softFeedCmd()).until(indexer.sensors.noteDetected);
-  }*/
-
-  // TODO investigate whether this would be helpful
-  /*public Command intakeUntilNoteHoldIntake() {
-    return intake.intakeCmd().alongWith(indexer.softFeedCmd().until(indexer.sensors.noteDetected).andThen(indexer.stopCmd()));
-  }*/
-
-  public Command intakeUntilNoteWhileRumble() {
-    return intakeUntilNote()
-        .alongWith(
-            Commands.run(
-                () -> {
-                  if (indexer.sensors.noteDetected.getAsBoolean()) { // make this better later
-                    joystick.getHID().setRumble(RumbleType.kLeftRumble, .4);
-                  }
-                }))
-        .andThen(Commands.waitSeconds(0.2))
-        .finallyDo(() -> joystick.getHID().setRumble(RumbleType.kLeftRumble, 0));
-  }
-
-  public Command fullIndexerAndIntakeFeed() {
-    return indexer.feedCmd().alongWith(intake.intakeCmd());
-  }
-
-  public Command shootyShoot(Supplier<Speeds> speedy) {
-    return shooter
-        .speedCmd(speedy)
-        .raceWith(
-            // we need to wait a bit otherwise atdesiredspeeds will return true
-            // we really could fix this by checking the most recently set speeds and we
-            // should do this
-            Commands.waitSeconds(0.12)
-                .andThen(
-                    Commands.waitUntil(
-                            shooter::atDesiredSpeeds
-                            //  () -> true // used for testing autos during simulation
-                            )
-                        .andThen(fullIndexerAndIntakeFeed().raceWith(Commands.waitSeconds(1)))))
-        .raceWith(Commands.waitSeconds(5))
-        .andThen(shooter.stopCmd().raceWith(Commands.waitSeconds(0.05)));
-  }
-
-  public Command bothEject() {
-    return indexer.ejectCmd().alongWith(intake.ejectCmd());
-  }
-
-  public Command preventStuckNote() {
-    // alternate between eject and intake in hopes of resolving issues
-    return (intake
-            .intakeCmd()
-            .alongWith(indexer.softFeedCmd())
-            .until(intake.intakeCurrentUp2.or(indexer.sensors.noteDetected))
-            .andThen(
-                bothEject()
-                    .raceWith(Commands.waitSeconds(0.09))
-                    .andThen(intakeUntilNote().raceWith(Commands.waitSeconds(0.6))))
-            .repeatedly()
-            .until(indexer.sensors.noteDetected)
-            .andThen(
-                intake.stopCmd().alongWith(indexer.stopCmd()).raceWith(Commands.waitSeconds(0.03))))
-        .onlyIf(indexer.sensors.noteDetected.negate());
   }
 
   public Command setShootSpeedCmd(ShootingSpeed sp) {
@@ -176,29 +110,29 @@ public class RobotContainer {
   }
 
   private void configureNonDriveBindings() {
-
+    // Rumble if the intake current is high
+    // TODO abstract this better
     intake.intakeCurrentUp.whileTrue(
         Commands.startEnd(
             () -> joystick.getHID().setRumble(RumbleType.kRightRumble, .4),
             () -> joystick.getHID().setRumble(RumbleType.kRightRumble, 0)));
     // Driver bindings:
     // Start button: Eject
-    joystick.start().whileTrue(bothEject());
+    joystick.start().whileTrue(com.bothEject());
 
-    // joystick.leftTrigger().whileTrue
     // Left bumper: Intake
-    joystick.leftBumper().whileTrue(intakeUntilNoteWhileRumble());
+    joystick.leftBumper().whileTrue(com.intakeUntilNoteWhileRumble());
     // Right bumper: Shoot
-    joystick.rightBumper().whileTrue(shootyShoot(() -> plannedShootSpeed.speeds));
+    joystick.rightBumper().whileTrue(com.shootyShoot(() -> plannedShootSpeed.speeds));
     // Left trigger: Unstuck note
-    joystick.leftTrigger().whileTrue(preventStuckNote());
+    joystick.leftTrigger().whileTrue(com.preventStuckNote());
     // Right trigger: Spin up shoot speed without shooting
+    // (I haven't used this yet because I keep forgetting about it ;c)
     joystick.rightTrigger().whileTrue(shooter.speedCmd(() -> plannedShootSpeed.speeds));
     // A AMP
     joystick.a().onTrue(setShootSpeedCmd(ShootingSpeed.AMP));
     // B: Shooter
     joystick.b().onTrue(setShootSpeedCmd(ShootingSpeed.SUBWOOFER));
-
     // Y: Shooter
     joystick.y().onTrue(setShootSpeedCmd(ShootingSpeed.FARTHERSHOT));
     // X: Shooter
@@ -206,6 +140,7 @@ public class RobotContainer {
   }
 
   public Command getAutonomousCommand() {
+    // TODO clean this up probably
     // return drivetrain.getAutoPath("autopath");
     // return Commands.print("No autonomous command configured");
     /*return shootyShoot(() -> ShootingSpeed.SUBWOOFER.speeds)
@@ -218,6 +153,7 @@ public class RobotContainer {
                     drivetrain.drive.withVelocityX(1.5).withVelocityY(0).withRotationalRate(0))
             .raceWith(Commands.waitSeconds(4)));*/
     // return drivetrain.getAutoPath("left score auto");
+
     return chooser.getSelected();
   }
 

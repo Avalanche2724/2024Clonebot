@@ -36,8 +36,7 @@ import java.util.function.Supplier;
  * in command-based projects easily.
  */
 public class CommandSwerveDrivetrain extends SwerveDrivetrain implements Subsystem {
-  // HUGE TODO: see "Preventing wheel slip" in phoenix 6 docs
-  // TODO: redo brake and pointat requests
+  // TODO: re-implement brake and pointat requests into controls
   // Stuff for controls:
   public static final double MaxSpeed =
       TunerConstants.kSpeedAt12VoltsMps; // kSpeedAt12VoltsMps desired top speed

@@ -15,6 +15,10 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.util.Color;
 import edu.wpi.first.wpilibj.util.Color8Bit;
 
+/**
+ * Telemetry; this class was copied approximately unchanged from the CTRE SwerveWithPathPlanner
+ * example
+ */
 public class Telemetry {
   private final double MaxSpeed;
 
