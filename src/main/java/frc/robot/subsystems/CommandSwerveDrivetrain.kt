@@ -4,27 +4,29 @@ import com.ctre.phoenix6.StatusCode
 import com.ctre.phoenix6.Utils
 import com.ctre.phoenix6.mechanisms.swerve.*
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest.*
+import com.ctre.phoenix6.mechanisms.swerve.utility.PhoenixPIDController
 import com.pathplanner.lib.auto.AutoBuilder
-import com.pathplanner.lib.util.HolonomicPathFollowerConfig
-import com.pathplanner.lib.util.PIDConstants
-import com.pathplanner.lib.util.ReplanningConfig
+import com.pathplanner.lib.config.ModuleConfig
+import com.pathplanner.lib.config.PIDConstants
+import com.pathplanner.lib.config.RobotConfig
+import com.pathplanner.lib.controllers.PPHolonomicDriveController
 import edu.wpi.first.math.geometry.Pose2d
 import edu.wpi.first.math.geometry.Rotation2d
 import edu.wpi.first.math.geometry.Translation2d
 import edu.wpi.first.math.kinematics.ChassisSpeeds
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics
+import edu.wpi.first.math.system.plant.DCMotor
 import edu.wpi.first.wpilibj.DriverStation
 import edu.wpi.first.wpilibj.Notifier
 import edu.wpi.first.wpilibj.RobotController
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Subsystem
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.robot.generated.TunerConstants
 import frc.robot.sysIdGenerateRoutine
 import java.util.function.Supplier
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.sqrt
+import kotlin.math.*
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
@@ -94,6 +96,15 @@ class CommandSwerveDrivetrain(
                     hasAppliedOperatorPerspective = true
                 }
         }
+
+        SmartDashboard.putString("DT speaker location", speakerLocation.toString())
+        SmartDashboard.putString("DT speaker rotation", angleToSpeaker.toString())
+        SmartDashboard.putNumber("DT dist speaker", distanceToSpeaker)
+        SmartDashboard.putString("DT robot translation", pose().translation.toString())
+        SmartDashboard.putString("DT robot rotation", pose().rotation.toString())
+        SmartDashboard.putBoolean("DT good pointing", goodPointingToSpeaker)
+        SmartDashboard.putBoolean("DT not moving", notActivelyMoving)
+
     }
 
     /**
@@ -127,17 +138,25 @@ class CommandSwerveDrivetrain(
             driveBaseRadius = max(driveBaseRadius, moduleLocation.getNorm())
         }
 
-        AutoBuilder.configureHolonomic(
+        AutoBuilder.configure(
             ::pose,  // Supplier of current robot pose
             ::seedFieldRelative,  // Consumer for seeding pose against auto
             ::currentRobotChassisSpeeds,
             ::runAutoSpeeds,  // Consumer of ChassisSpeeds to drive the robot
-            HolonomicPathFollowerConfig(
-                PIDConstants(10.0, 0.0, 0.0),  // TODO tune
-                PIDConstants(10.0, 0.0, 0.0),
-                TunerConstants.kSpeedAt12VoltsMps,
-                driveBaseRadius,
-                ReplanningConfig()
+            PPHolonomicDriveController(
+                PIDConstants(5.0, 0.0, 0.0),  // TODO tune
+                PIDConstants(5.0, 0.0, 0.0)
+            ),
+            RobotConfig(
+                50.73, 4.0,
+                ModuleConfig(
+                    TunerConstants.kWheelRadiusInches,
+                    MAX_SPEED,
+                    1.0,
+                    DCMotor.getFalcon500Foc(1),
+                    60.0,
+                    4
+                ), 11.375 * 2 // todo fix
             ),
             {
                 DriverStation.getAlliance()
@@ -152,6 +171,12 @@ class CommandSwerveDrivetrain(
 
     // this desaturates wheel speeds, unlike the ctre api
     class FieldCentricButBetter : FieldCentric() {
+        val headingController = PhoenixPIDController(4.0, 0.0, 0.0);
+
+        init {
+            headingController.enableContinuousInput(-Math.PI, Math.PI)
+        }
+
         override fun apply(
             parameters: SwerveControlRequestParameters,
             vararg modulesToApply: SwerveModule
@@ -162,8 +187,8 @@ class CommandSwerveDrivetrain(
                 /* If we're operator perspective, modify the X/Y translation by the angle */
                 var tmp = Translation2d(toApplyX, toApplyY)
                 tmp = tmp.rotateBy(parameters.operatorForwardDirection)
-                toApplyX = tmp.getX()
-                toApplyY = tmp.getY()
+                toApplyX = tmp.x
+                toApplyY = tmp.y
             }
             var toApplyOmega = RotationalRate
             if (sqrt(toApplyX * toApplyX + toApplyY * toApplyY) < Deadband) {
@@ -173,6 +198,16 @@ class CommandSwerveDrivetrain(
             if (abs(toApplyOmega) < RotationalDeadband) {
                 toApplyOmega = 0.0
             }
+            // actually
+            // TODO this is kinda bad and we should fix this stuff
+            if (abs(toApplyOmega) < 0.05 && staticDrivetrainLol != null && staticDrivetrainLol!!.weShouldBePointingAtSpeaker) {
+                val rotationRate = headingController.calculate(
+                    parameters.currentPose.rotation.radians,
+                    staticDrivetrainLol!!.angleToSpeaker.radians, parameters.timestamp
+                )
+                toApplyOmega = rotationRate
+            }
+
 
             val speeds = ChassisSpeeds.discretize(
                 ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -230,5 +265,43 @@ class CommandSwerveDrivetrain(
             TunerConstants.kSpeedAt12VoltsMps // kSpeedAt12VoltsMps desired top speed
         const val MAX_ANGLE_RATE: Double = 2.5 * Math.PI // teleop
         private const val SIM_LOOP_PERIOD = 0.005 // 5 ms
+
+        // TODO make better
+        var staticDrivetrainLol: CommandSwerveDrivetrain? = null
     }
+
+    init {
+        staticDrivetrainLol = this;
+    }
+
+
+    private val speakerLocation
+        get() = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
+            .let {
+                if (it == DriverStation.Alliance.Blue) Translation2d(
+                    0.0,
+                    5.548
+                ) else Translation2d(16.579, 5.548)
+            }
+
+    val distanceToSpeaker
+        get() = pose().translation.getDistance(speakerLocation)
+
+
+    private fun getAngleToPoint(robotPose: Pose2d, targetPoint: Translation2d) =
+        (targetPoint - robotPose.translation).let { Rotation2d(it.x, it.y) }
+
+    val angleToSpeaker
+        get() = getAngleToPoint(pose(), speakerLocation)
+    var weShouldBePointingAtSpeaker = false
+
+    val goodPointingToSpeaker
+        get() = (angleToSpeaker - pose().rotation).radians.absoluteValue < 0.1
+
+    val notActivelyMoving
+        get() = this.state.speeds.let {
+            hypot(it.vxMetersPerSecond, it.vyMetersPerSecond) < 0.1
+        }
+
+
 }

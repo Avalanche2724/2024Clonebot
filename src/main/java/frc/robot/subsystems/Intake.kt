@@ -27,7 +27,7 @@ class Intake : SubsystemBase() {
                 StatorCurrentLimitEnable = true
             }
             Slot0.apply {
-                kP = 0.4
+                kP = 0.35
             }
         })
     }
@@ -68,7 +68,7 @@ class Intake : SubsystemBase() {
     override fun periodic() {
         signals.onEach {
             it.refresh()
-            SmartDashboard.putNumber("Intake/" + it.name, it.valueAsDouble)
+            SmartDashboard.putNumber("Intake " + it.name, it.valueAsDouble)
         }
         if (loopsWithoutControlRequest == 1) {
             setMotor(0.0);

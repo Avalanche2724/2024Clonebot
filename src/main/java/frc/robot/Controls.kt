@@ -76,16 +76,18 @@ class Controls(bot: RobotContainer) {
             .onTrue(drivetrain.runOnce(drivetrain::resetGyroToForwardFromOperatorPointOfView))
     }
 
-    private fun rumble(type: RumbleType, value: Double): Command = Commands.startEnd(
-        { joystick.hid.setRumble(type, value) },
-        { joystick.hid.setRumble(type, 0.0) })
+    private fun CommandXboxController.rumble(type: RumbleType, value: Double): Command =
+        Commands.startEnd(
+            { hid.setRumble(type, value) },
+            { hid.setRumble(type, 0.0) })
 
     fun configureNonDriveBindings() {
-        // Rumble if the intake current is high
-        intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kLeftRumble, 0.3))
-        // Rumble if note detected
-        indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.4))
         with(joystick) {
+            // Rumble if the intake current is high
+            intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kLeftRumble, 0.3))
+            // Rumble if note detected
+            indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.4))
+
             // Driver bindings:
             // Start button: Eject
             start().whileTrue(com.bothEject())
@@ -93,6 +95,8 @@ class Controls(bot: RobotContainer) {
             leftBumper().whileTrue(com.intakeUntilNote())
             // Right bumper: Shoot
             rightBumper().whileTrue(com.simpleShoot { plannedShootSpeed.speeds })
+            // Right trigger: Shoot but better!
+            rightTrigger().whileTrue(com.teleopShoot())
             // Left trigger: BETTER intake
             leftTrigger().whileTrue(com.superIntake())
 
@@ -101,10 +105,14 @@ class Controls(bot: RobotContainer) {
             a().shootSpeed(ShootingSpeed.AMP)
             // B: Shooter
             b().shootSpeed(ShootingSpeed.SUBWOOFER)
+
+            y().shootSpeed(ShootingSpeed.AUTOSHOT)
+
+            // Unused:
             // Y: Shooter
-            y().shootSpeed(ShootingSpeed.FARTHERSHOT)
+            ///y().shootSpeed(ShootingSpeed.FARTHERSHOT)
             // X: Shooter
-            x().shootSpeed(ShootingSpeed.LINESHOT)
+            ///x().shootSpeed(ShootingSpeed.LINESHOT)
         }
     }
 

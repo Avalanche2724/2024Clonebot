@@ -27,7 +27,7 @@ object TunerConstants {
         .withKV(0.11356)
         .withKA(0.010205) // reanalyze later
 
-    // rotation kA: 0.017392
+    // rotation kA:
     // The closed-loop output type to use for the steer motors;
     // This affects the PID/FF gains for the steer motors
     private val steerClosedLoopOutput = ClosedLoopOutputType.Voltage
@@ -62,7 +62,7 @@ object TunerConstants {
 
     private const val kDriveGearRatio = (50.0 / 14.0) * (16.0 / 28.0) * (45.0 / 15.0)
     private const val kSteerGearRatio = 150.0 / 7.0
-    private const val kWheelRadiusInches = 2.0 // diameter = 4
+    const val kWheelRadiusInches = 1.92 // Best estimate... TODO needs characterization
 
     private const val kInvertLeftSide = false
     private const val kInvertRightSide = true
@@ -118,8 +118,7 @@ object TunerConstants {
         Units.inchesToMeters(7.875),
         Units.inchesToMeters(11.375),
         kInvertLeftSide
-    )
-        .withSteerMotorInverted(true)
+    ).withSteerMotorInverted(true)
 
     // Front Right
     private val FrontRight: SwerveModuleConstants = ConstantCreator.createModuleConstants(
@@ -130,8 +129,7 @@ object TunerConstants {
         Units.inchesToMeters(7.875),
         Units.inchesToMeters(-11.375),
         kInvertRightSide
-    )
-        .withSteerMotorInverted(true)
+    ).withSteerMotorInverted(true)
 
     // Back Left
     private val BackLeft: SwerveModuleConstants = ConstantCreator.createModuleConstants(
@@ -142,8 +140,7 @@ object TunerConstants {
         Units.inchesToMeters(-7.875),
         Units.inchesToMeters(11.375),
         kInvertLeftSide
-    )
-        .withSteerMotorInverted(true)
+    ).withSteerMotorInverted(true)
 
     // Back Right
     private val BackRight: SwerveModuleConstants = ConstantCreator.createModuleConstants(
@@ -154,10 +151,8 @@ object TunerConstants {
         Units.inchesToMeters(-7.875),
         Units.inchesToMeters(-11.375),
         kInvertRightSide
-    )
-        .withSteerMotorInverted(true)
+    ).withSteerMotorInverted(true)
 
-    @JvmStatic
     fun createDrivetrain(): CommandSwerveDrivetrain {
         return CommandSwerveDrivetrain(
             DrivetrainConstants,

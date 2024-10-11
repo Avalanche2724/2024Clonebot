@@ -41,7 +41,7 @@ class Indexer : SubsystemBase() {
                 StatorCurrentLimitEnable = true
             }
             Slot0.apply {
-                kP = 0.4
+                kP = 0.35
             }
         })
     }
@@ -71,7 +71,7 @@ class Indexer : SubsystemBase() {
     override fun periodic() {
         signals.onEach {
             it.refresh()
-            SmartDashboard.putNumber("Indexer/" + it.name, it.valueAsDouble)
+            SmartDashboard.putNumber("Indexer " + it.name, it.valueAsDouble)
         }
         loopsWithoutControlRequest++
         if (loopsWithoutControlRequest == 2) {
@@ -101,8 +101,8 @@ class Indexer : SubsystemBase() {
 
     enum class Output(val volts: Double) {
         // in units of volts
-        INTAKE(12.0),
-        EJECT(-12.0),
+        INTAKE(9.0),
+        EJECT(-9.0),
         STOP(0.0)
     }
 }
