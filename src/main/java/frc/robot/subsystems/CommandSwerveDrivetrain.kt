@@ -26,7 +26,14 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine
 import frc.robot.generated.TunerConstants
 import frc.robot.sysIdGenerateRoutine
 import java.util.function.Supplier
-import kotlin.math.*
+import kotlin.math.abs
+import kotlin.math.hypot
+import kotlin.math.max
+import kotlin.math.sqrt
+
+
+private fun getAngleToPoint(robotPose: Pose2d, targetPoint: Translation2d) =
+    (targetPoint - robotPose.translation).let { Rotation2d(it.x, it.y) }
 
 /**
  * Class that extends the Phoenix SwerveDrivetrain class and implements subsystem so it can be used
@@ -98,7 +105,7 @@ class CommandSwerveDrivetrain(
         }
 
         SmartDashboard.putString("DT speaker location", speakerLocation.toString())
-        SmartDashboard.putString("DT speaker rotation", angleToSpeaker.toString())
+        //SmartDashboard.putString("DT speaker rotation", angleToSpeaker.toString())
         SmartDashboard.putNumber("DT dist speaker", distanceToSpeaker)
         SmartDashboard.putString("DT robot translation", pose().translation.toString())
         SmartDashboard.putString("DT robot rotation", pose().rotation.toString())
@@ -200,10 +207,13 @@ class CommandSwerveDrivetrain(
             }
             // actually
             // TODO this is kinda bad and we should fix this stuff
-            if (abs(toApplyOmega) < 0.05 && staticDrivetrainLol != null && staticDrivetrainLol!!.weShouldBePointingAtSpeaker) {
+            if (abs(toApplyOmega) < 0.05 && staticDrivetrainLol != null && staticDrivetrainLol!!.weShouldBePointingAt != null) {
+                val weShouldBePointingAt = staticDrivetrainLol!!.weShouldBePointingAt!!
+                val angleToPointAt = getAngleToPoint(parameters.currentPose, weShouldBePointingAt)
+
                 val rotationRate = headingController.calculate(
                     parameters.currentPose.rotation.radians,
-                    staticDrivetrainLol!!.angleToSpeaker.radians, parameters.timestamp
+                    angleToPointAt.radians, parameters.timestamp
                 )
                 toApplyOmega = rotationRate
             }
@@ -275,7 +285,7 @@ class CommandSwerveDrivetrain(
     }
 
 
-    private val speakerLocation
+    val speakerLocation
         get() = DriverStation.getAlliance().orElse(DriverStation.Alliance.Blue)
             .let {
                 if (it == DriverStation.Alliance.Blue) Translation2d(
@@ -287,16 +297,12 @@ class CommandSwerveDrivetrain(
     val distanceToSpeaker
         get() = pose().translation.getDistance(speakerLocation)
 
+    var weShouldBePointingAt: Translation2d? = null
 
-    private fun getAngleToPoint(robotPose: Pose2d, targetPoint: Translation2d) =
-        (targetPoint - robotPose.translation).let { Rotation2d(it.x, it.y) }
-
-    val angleToSpeaker
-        get() = getAngleToPoint(pose(), speakerLocation)
-    var weShouldBePointingAtSpeaker = false
-
+    // TODO make this better lol
     val goodPointingToSpeaker
-        get() = (angleToSpeaker - pose().rotation).radians.absoluteValue < 0.1
+        get() = true
+    //    get() = (angleToSpeaker - pose().rotation).radians.absoluteValue < 0.1
 
     val notActivelyMoving
         get() = this.state.speeds.let {
