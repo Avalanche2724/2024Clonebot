@@ -37,7 +37,7 @@ class Indexer : SubsystemBase() {
                 Inverted = InvertedValue.CounterClockwise_Positive
             }
             CurrentLimits.apply {
-                StatorCurrentLimit = 80.0
+                StatorCurrentLimit = 80.0 // DO NOT TURN THIS DOWN, THE CURRENT IS NECESSARY TO FEED INTO SHOOTER
                 StatorCurrentLimitEnable = true
             }
             Slot0.apply {
