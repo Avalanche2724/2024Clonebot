@@ -88,9 +88,9 @@ class Controls(bot: RobotContainer) {
     fun configureNonDriveBindings() {
         with(joystick) {
             // Rumble if the intake current is high
-            intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kLeftRumble, 0.1))
+            intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kRightRumble, 0.4))
             // Rumble if note detected
-            indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.7))
+            indexer.noteDetected.whileTrue(rumble(RumbleType.kLeftRumble, 0.2))
 
             // Driver bindings:
             // Start button: Eject
