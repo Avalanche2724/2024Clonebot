@@ -17,7 +17,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "coolSpinShot"
+                  "name": "subSpinShot"
                 }
               }
             ]
@@ -26,7 +26,7 @@
         {
           "type": "named",
           "data": {
-            "name": "coolShot"
+            "name": "subShot"
           }
         },
         {
@@ -42,7 +42,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "intakeAndSpin"
+                  "name": "intakeAndSubSpin"
                 }
               }
             ]
@@ -51,7 +51,7 @@
         {
           "type": "named",
           "data": {
-            "name": "coolShot"
+            "name": "subShot"
           }
         },
         {
@@ -67,7 +67,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "intakeAndSpin"
+                  "name": "intakeAndSubSpin"
                 }
               }
             ]
@@ -76,7 +76,7 @@
         {
           "type": "named",
           "data": {
-            "name": "coolShot"
+            "name": "subShot"
           }
         },
         {
@@ -92,7 +92,7 @@
               {
                 "type": "named",
                 "data": {
-                  "name": "intakeAndSpin"
+                  "name": "intakeAndSubSpin"
                 }
               }
             ]
@@ -101,7 +101,7 @@
         {
           "type": "named",
           "data": {
-            "name": "coolShot"
+            "name": "subShot"
           }
         }
       ]

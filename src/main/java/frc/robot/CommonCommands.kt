@@ -1,6 +1,7 @@
 package frc.robot
 
 import com.pathplanner.lib.auto.NamedCommands
+import edu.wpi.first.math.util.Units
 import edu.wpi.first.wpilibj.TimedRobot
 import edu.wpi.first.wpilibj2.command.Command
 import edu.wpi.first.wpilibj2.command.Commands.*
@@ -86,10 +87,12 @@ class CommonCommands(private val bot: RobotContainer) {
 
     private fun teleopPointAtSpeaker(): Command =
         startEnd(
-            { drivetrain.weShouldBePointingAtSpeaker = true },
-            { drivetrain.weShouldBePointingAtSpeaker = false })
+            { drivetrain.weShouldBePointingAt = drivetrain.speakerLocation },
+            { drivetrain.weShouldBePointingAt = null })
 
-    private fun getBetterShooterSpeeds() = shooter.speedFromDistance(drivetrain.distanceToSpeaker)
+    private fun getBetterShooterSpeeds() = shooter.speedFromDistance(
+        drivetrain.distanceToSpeaker - Units.inchesToMeters(16.5) // reference point at speaker
+    )
 
     fun teleopShoot(): Command =
         race(
@@ -124,9 +127,19 @@ class CommonCommands(private val bot: RobotContainer) {
                         shootDelayTime
                     )
                 ),
+                "subSpinShot" to shooter.speedCmdUnending { ShootingSpeed.SUBWOOFER.speeds },
+                "subShot" to simpleShoot { ShootingSpeed.SUBWOOFER.speeds }.raceWith(
+                    waitSeconds(
+                        shootDelayTime
+                    )
+                ),
                 "intakeAndSpin" to parallel(
                     superIntake(),
-                    shooter.speedCmdUnending { ShootingSpeed.AUTOSHOT.speeds })
+                    shooter.speedCmdUnending { ShootingSpeed.AUTOSHOT.speeds }),
+                "intakeAndSubSpin" to parallel(
+                    superIntake(),
+                    shooter.speedCmdUnending { ShootingSpeed.SUBWOOFER.speeds })
+
             )
         )
     }

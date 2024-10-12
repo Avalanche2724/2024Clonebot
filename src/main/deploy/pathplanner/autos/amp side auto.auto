@@ -1,12 +1,5 @@
 {
   "version": 1.0,
-  "startingPose": {
-    "position": {
-      "x": 0.88,
-      "y": 6.69
-    },
-    "rotation": 50.0
-  },
   "command": {
     "type": "sequential",
     "data": {
@@ -14,23 +7,23 @@
         {
           "type": "named",
           "data": {
-            "name": "shoot"
+            "name": "subShot"
           }
         },
         {
-          "type": "race",
+          "type": "deadline",
           "data": {
             "commands": [
               {
                 "type": "path",
                 "data": {
-                  "pathName": "better amp side score"
+                  "pathName": "AS 2 AN"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "intake"
+                  "name": "intakeAndSubSpin"
                 }
               }
             ]
@@ -39,12 +32,13 @@
         {
           "type": "named",
           "data": {
-            "name": "superShoot"
+            "name": "subShot"
           }
         }
       ]
     }
   },
+  "resetOdom": true,
   "folder": null,
-  "choreoAuto": false
+  "choreoAuto": true
 }
