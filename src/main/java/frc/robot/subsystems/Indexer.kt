@@ -73,6 +73,10 @@ class Indexer : SubsystemBase() {
             it.refresh()
             SmartDashboard.putNumber("Indexer " + it.name, it.valueAsDouble)
         }
+
+        SmartDashboard.putBoolean("Note sense left", leftTrigger.asBoolean)
+        SmartDashboard.putBoolean("Note sense right", rightTrigger.asBoolean)
+
         loopsWithoutControlRequest++
         if (loopsWithoutControlRequest == 2) {
             setMotor(0.0)
