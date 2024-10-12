@@ -61,7 +61,7 @@ class Indexer : SubsystemBase() {
     private val signals = listOf(torqueCurrent, acceleration, velocity, position, voltage)
         .onEach { it.setUpdateFrequency(100.0) }
 
-    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -2 }
+    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -5 }
 
     init {
         defaultCommand = stopCmd()

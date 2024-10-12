@@ -58,7 +58,7 @@ class Intake : SubsystemBase() {
     }.debounce(0.3)
 
 
-    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -2 }
+    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -5 }
 
     init {
         defaultCommand = stopCmd()
@@ -98,8 +98,8 @@ class Intake : SubsystemBase() {
 
     enum class Output(val volts: Double) {
         // in units of volts
-        INTAKE(12.0),
-        EJECT(-12.0),
+        INTAKE(11.0),
+        EJECT(-9.0),
         STOP(0.0)
     }
 }

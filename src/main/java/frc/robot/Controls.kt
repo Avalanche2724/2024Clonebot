@@ -44,7 +44,11 @@ class Controls(bot: RobotContainer) {
     }
 
     fun configureDriveBindings() {
+        var joyrightstick = joystick.rightStick()
         drivetrain.defaultCommand = drivetrain.applyRequest {
+            var alignToNearest90 = joyrightstick.asBoolean
+            drivetrain.align = alignToNearest90
+
             val joystickY = -joystick.leftY
             val joystickX = joystick.leftX
             //0.5
@@ -86,7 +90,7 @@ class Controls(bot: RobotContainer) {
             // Rumble if the intake current is high
             intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kLeftRumble, 0.3))
             // Rumble if note detected
-            indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.5))
+            indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.3))
 
             // Driver bindings:
             // Start button: Eject
@@ -103,16 +107,16 @@ class Controls(bot: RobotContainer) {
             fun Trigger.shootSpeed(s: ShootingSpeed) = onTrue(runOnce({ plannedShootSpeed = s }))
             // A: AMP
             a().shootSpeed(ShootingSpeed.AMP)
-            // B: Shooter
+            // B: Shooter NEW SUBWOOFER
             b().shootSpeed(ShootingSpeed.SUBWOOFER)
 
             y().shootSpeed(ShootingSpeed.AUTOSHOT)
 
             // Unused:
-            // Y: Shooter
+            // Y: Shooter PASS/SHUTTLE
             y().shootSpeed(ShootingSpeed.FARTHERSHOT)
-            // X: Shooter
-            ///x().shootSpeed(ShootingSpeed.LINESHOT)
+            // X: Shooter OLD SUBWOOFER
+            x().shootSpeed(ShootingSpeed.OLDSUBWOOFER)
         }
     }
 

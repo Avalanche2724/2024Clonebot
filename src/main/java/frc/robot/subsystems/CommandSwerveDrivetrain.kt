@@ -27,6 +27,7 @@ import frc.robot.generated.TunerConstants
 import frc.robot.sysIdGenerateRoutine
 import java.util.function.Supplier
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sqrt
@@ -43,11 +44,11 @@ class CommandSwerveDrivetrain(
     driveTrainConstants: SwerveDrivetrainConstants,
     vararg modules: SwerveModuleConstants
 ) : SwerveDrivetrain(driveTrainConstants, *modules), Subsystem {
-    val teleopDriveRequest: FieldCentric =
+    val teleopDriveRequest: FieldCentricButBetter =
         FieldCentricButBetter() // NOTE: stricter deadbands implemented in controls
             .withDeadband(MAX_SPEED * 0.001)
             .withRotationalDeadband(MAX_ANGLE_RATE * 0.001)
-            .withDriveRequestType(SwerveModule.DriveRequestType.OpenLoopVoltage)
+            .withDriveRequestType(SwerveModule.DriveRequestType.OpenLoopVoltage) as FieldCentricButBetter
 
     /* Blue alliance sees forward as 0 degrees (toward red alliance wall) */
     private val blueAlliancePerspectiveRotation: Rotation2d = Rotation2d.fromDegrees(0.0)
@@ -175,10 +176,12 @@ class CommandSwerveDrivetrain(
 
     private val currentRobotChassisSpeeds
         get() = m_kinematics.toChassisSpeeds(*state.ModuleStates)
+    var align = false
 
     // this desaturates wheel speeds, unlike the ctre api
     class FieldCentricButBetter : FieldCentric() {
-        val headingController = PhoenixPIDController(4.0, 0.0, 0.0);
+        val headingController = PhoenixPIDController(4.0, 0.0, 0.0)
+
 
         init {
             headingController.enableContinuousInput(-Math.PI, Math.PI)
@@ -216,7 +219,22 @@ class CommandSwerveDrivetrain(
                     angleToPointAt.radians, parameters.timestamp
                 )
                 toApplyOmega = rotationRate
+            } else if (abs(toApplyOmega) < 6.3 && staticDrivetrainLol != null && staticDrivetrainLol!!.align == true) {
+                var myCurrentAngleDegrees = parameters.currentPose.rotation.degrees
+                while (myCurrentAngleDegrees > 360) { myCurrentAngleDegrees -= 360.0 }
+                while (myCurrentAngleDegrees < 0) { myCurrentAngleDegrees += 360.0 }
+
+                var plus45 = myCurrentAngleDegrees.plus(45.0)
+                var div90 = floor(plus45.div(90.0))
+                var times90 = div90.times(90)
+
+                val rotationRate = headingController.calculate(
+                    parameters.currentPose.rotation.radians,
+                    Math.toRadians(times90), parameters.timestamp
+                )
+                toApplyOmega = rotationRate
             }
+
 
 
             val speeds = ChassisSpeeds.discretize(
