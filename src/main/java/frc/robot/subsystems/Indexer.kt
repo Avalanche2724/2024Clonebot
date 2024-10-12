@@ -37,7 +37,7 @@ class Indexer : SubsystemBase() {
                 Inverted = InvertedValue.CounterClockwise_Positive
             }
             CurrentLimits.apply {
-                StatorCurrentLimit = 80.0
+                StatorCurrentLimit = 40.0
                 StatorCurrentLimitEnable = true
             }
             Slot0.apply {
@@ -61,7 +61,7 @@ class Indexer : SubsystemBase() {
     private val signals = listOf(torqueCurrent, acceleration, velocity, position, voltage)
         .onEach { it.setUpdateFrequency(100.0) }
 
-    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -5 }
+    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -10 }
 
     init {
         defaultCommand = stopCmd()

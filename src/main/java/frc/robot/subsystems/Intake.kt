@@ -48,17 +48,17 @@ class Intake : SubsystemBase() {
         .onEach { it.setUpdateFrequency(100.0) }
 
     val isMotorStalling = Trigger {
-        acceleration.valueAsDouble.absoluteValue < 0.5
-                && torqueCurrent.valueAsDouble.absoluteValue > 38
-                && velocity.valueAsDouble.absoluteValue < 0.5
-    }
+        //acceleration.valueAsDouble.absoluteValue < 0.5
+                torqueCurrent.valueAsDouble.absoluteValue > 36
+                //&& velocity.valueAsDouble.absoluteValue < 0.5
+    }.debounce(0.11)
 
     val isIntakeCurrentUp = Trigger {
         torqueCurrent.valueAsDouble.absoluteValue > 10
     }.debounce(0.3)
 
 
-    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -5 }
+    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -10 }
 
     init {
         defaultCommand = stopCmd()
@@ -98,7 +98,7 @@ class Intake : SubsystemBase() {
 
     enum class Output(val volts: Double) {
         // in units of volts
-        INTAKE(11.0),
+        INTAKE(8.0),
         EJECT(-9.0),
         STOP(0.0)
     }
