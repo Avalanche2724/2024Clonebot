@@ -37,7 +37,7 @@ class Indexer : SubsystemBase() {
                 Inverted = InvertedValue.CounterClockwise_Positive
             }
             CurrentLimits.apply {
-                StatorCurrentLimit = 40.0
+                StatorCurrentLimit = 80.0
                 StatorCurrentLimitEnable = true
             }
             Slot0.apply {
