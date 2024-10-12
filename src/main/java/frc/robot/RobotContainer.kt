@@ -18,6 +18,7 @@ import frc.robot.subsystems.CommandSwerveDrivetrain
 import frc.robot.subsystems.Indexer
 import frc.robot.subsystems.Intake
 import frc.robot.subsystems.Shooter
+import frc.robot.subsystems.Shooter.ShootingSpeed
 import org.photonvision.EstimatedRobotPose
 
 class RobotContainer(var bot: Robot) {
@@ -59,6 +60,7 @@ class RobotContainer(var bot: Robot) {
         }
 
         chooser = AutoBuilder.buildAutoChooser("NONE")
+        chooser.addOption("SHOOT ONLY", com.simpleShoot { ShootingSpeed.SUBWOOFER.speeds })
         SmartDashboard.putData("CHOOSE AUTO!!!", chooser)
     }
 

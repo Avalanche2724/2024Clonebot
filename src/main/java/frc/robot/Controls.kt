@@ -86,7 +86,7 @@ class Controls(bot: RobotContainer) {
             // Rumble if the intake current is high
             intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kLeftRumble, 0.3))
             // Rumble if note detected
-            indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.4))
+            indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.5))
 
             // Driver bindings:
             // Start button: Eject
@@ -110,7 +110,7 @@ class Controls(bot: RobotContainer) {
 
             // Unused:
             // Y: Shooter
-            ///y().shootSpeed(ShootingSpeed.FARTHERSHOT)
+            y().shootSpeed(ShootingSpeed.FARTHERSHOT)
             // X: Shooter
             ///x().shootSpeed(ShootingSpeed.LINESHOT)
         }
