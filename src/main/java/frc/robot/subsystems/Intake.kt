@@ -58,7 +58,8 @@ class Intake : SubsystemBase() {
     }.debounce(0.3)
 
 
-    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -10 }
+    val isMotorMovingBack = Trigger { velocity.valueAsDouble < -14
+    }
 
     init {
         defaultCommand = stopCmd()
