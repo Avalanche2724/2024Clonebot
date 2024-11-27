@@ -97,11 +97,14 @@ class Shooter : SubsystemBase() {
     enum class ShootingSpeed(var speeds: Speeds) {
         AMP(Speeds(400.0, 1000.0)),
         AUTOSHOT(Speeds(1700.0, 2500.0)),
+
         OLDSUBWOOFER(Speeds(1200.0, 3600.0)), // previously 1200/3200
         //OLDSUBWOOFER(Speeds(1200.0, 3250.0)),
         SUBWOOFER(Speeds(1800.0, 4050.0)),
         //LINESHOT(Speeds(4000.0, 1800.0)),
-        FARTHERSHOT(Speeds(3200.0, 2200.0));
+        FARTHERSHOT(Speeds(3200.0, 2200.0)),
+        OUTREACHSHOT1(Speeds(700.0, 1400.0)),
+        OUTREACHSHOT2(Speeds(2000.0, 1000.0));
 
         data class Speeds(val top: Double, val bottom: Double)
     }

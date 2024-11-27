@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard
 import edu.wpi.first.wpilibj2.command.SubsystemBase
 import edu.wpi.first.wpilibj2.command.WrapperCommand
 import edu.wpi.first.wpilibj2.command.button.Trigger
+import frc.robot.RobotContainer
 import frc.robot.subsystems.Indexer.Output
 import kotlin.math.absoluteValue
 
@@ -81,7 +82,7 @@ class Intake : SubsystemBase() {
         loopsWithoutControlRequest = 0
         motor.setControl(
             if (volts == 0.0) brake
-            else control.withOutput(volts)
+            else control.withOutput(volts  * RobotContainer.voltageMultiplier)
         )
     }
 
@@ -99,7 +100,7 @@ class Intake : SubsystemBase() {
 
     enum class Output(val volts: Double) {
         // in units of volts
-        INTAKE(8.0),
+        INTAKE(11.0),
         EJECT(-9.0),
         STOP(0.0)
     }
