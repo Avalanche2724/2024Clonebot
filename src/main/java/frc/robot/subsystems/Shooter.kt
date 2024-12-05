@@ -1,6 +1,7 @@
 package frc.robot.subsystems
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC
 import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.InvertedValue
@@ -28,9 +29,9 @@ class Shooter : SubsystemBase() {
                 Inverted = InvertedValue.Clockwise_Positive
             }
             Slot0.apply {
-                kS = 0.195
-                kV = 0.126
-                kP = 0.4
+                kS = 0.15545
+                kV = 0.12693
+                kP = 0.19241
             }
         })
     }
@@ -41,16 +42,16 @@ class Shooter : SubsystemBase() {
                 Inverted = InvertedValue.Clockwise_Positive
             }
             Slot0.apply {
-                kS = 0.195
-                kV = 0.126
-                kP = 0.4
+                kS = 0.10585
+                kV = 0.12615
+                kP = 0.19302
             }
         })
     }
     private val controlTop = VelocityVoltage(0.0)
     private val controlBottom = VelocityVoltage(0.0)
 
-    val sysIdRoutine = sysIdSingleMotor(this, topMotor)
+    val sysIdRoutine = sysIdSingleMotor(this, bottomMotor)
 
     init {
         defaultCommand = stopCmd()
@@ -71,12 +72,12 @@ class Shooter : SubsystemBase() {
                 (bottomMotor.velocity.valueAsDouble - lastSetBottom).absoluteValue < SPEED_TOL
 
 
-    private var lastSetTop = 0.0;
-    private var lastSetBottom = 0.0;
+    private var lastSetTop = 0.0
+    private var lastSetBottom = 0.0
 
     fun runWithSpeed(speed: Speeds) {
-        lastSetTop = speed.top / 60;
-        lastSetBottom = speed.bottom / 60;
+        lastSetTop = speed.top / 60
+        lastSetBottom = speed.bottom / 60
         topMotor.setControl(controlTop.apply { Velocity = lastSetTop })
         bottomMotor.setControl(controlBottom.apply { Velocity = lastSetBottom })
     }

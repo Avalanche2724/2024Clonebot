@@ -18,7 +18,7 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 
-const val enableOutreachModeConst = true
+const val enableOutreachModeConst = false
 
 class Controls(bot: RobotContainer) {
     val outreachMode
@@ -133,7 +133,8 @@ class Controls(bot: RobotContainer) {
         with(joystick) {
             leftBumper().onTrue(runOnce(SignalLogger::start))
             rightBumper().onTrue(runOnce(SignalLogger::stop))
-            a().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kForward))
+            a().whileTrue(Commands.print("starting a").andThen(
+                routine.quasistatic(SysIdRoutine.Direction.kForward)))
             b().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kReverse))
             x().whileTrue(routine.dynamic(SysIdRoutine.Direction.kForward))
             y().whileTrue(routine.dynamic(SysIdRoutine.Direction.kReverse))
