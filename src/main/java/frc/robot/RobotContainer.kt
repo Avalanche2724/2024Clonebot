@@ -32,7 +32,7 @@ class RobotContainer(var bot: Robot) {
     private val vision: Vision = Vision()
     private val routine: SysIdRoutine? = null // drivetrain.sysId.routineToApply;
     private val doSysId = false
-    private val logger = Telemetry(CommandSwerveDrivetrain.MAX_SPEED)
+    val logger = Telemetry(CommandSwerveDrivetrain.MAX_SPEED)
 
     // Other necessary things
     val com: CommonCommands = CommonCommands(this)

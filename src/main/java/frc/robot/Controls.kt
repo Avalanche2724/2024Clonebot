@@ -24,6 +24,7 @@ class Controls(bot: RobotContainer) {
     private val shooter = bot.shooter
     private val drivetrain = bot.drivetrain
     private val joystick = CommandXboxController(0)
+    private val quest = bot.logger.quest
     val com = bot.com
 
     /** Stick deadband, can also be used to apply polynomial scale to joystick  */

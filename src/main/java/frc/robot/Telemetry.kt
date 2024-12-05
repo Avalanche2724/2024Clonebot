@@ -106,5 +106,10 @@ class Telemetry
 
             SmartDashboard.putData("Module $i", moduleMechanisms[i])
         }
+
+
+        quest.putData()
     }
+
+    val quest = QuestJavaInteraction()
 }
