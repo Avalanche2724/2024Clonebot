@@ -18,7 +18,11 @@ import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.sin
 
+const val enableOutreachModeConst = false
+
 class Controls(bot: RobotContainer) {
+    val outreachMode
+        get() = enableOutreachModeConst && (joystick.leftTriggerAxis < 0.8 && joystick.rightTriggerAxis < 0.8)
     private val intake = bot.intake
     private val indexer = bot.indexer
     private val shooter = bot.shooter
@@ -29,7 +33,10 @@ class Controls(bot: RobotContainer) {
 
     /** Stick deadband, can also be used to apply polynomial scale to joystick  */
     private val stickDeadband =
-        DoubleUnaryOperator { value: Double -> MathUtil.applyDeadband(value, 0.10) }
+        DoubleUnaryOperator { value: Double ->
+            MathUtil.applyDeadband(value, 0.10) *
+                    (if (outreachMode) 0.2 else 1.0)
+        }
     // Note: applied to magnitude of strafing stick
 
     private var plannedShootSpeed: ShootingSpeed = ShootingSpeed.AMP
@@ -89,9 +96,9 @@ class Controls(bot: RobotContainer) {
     fun configureNonDriveBindings() {
         with(joystick) {
             // Rumble if the intake current is high
-            intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kRightRumble, 0.4))
+            //intake.isIntakeCurrentUp.whileTrue(rumble(RumbleType.kRightRumble, 0.4))
             // Rumble if note detected
-            indexer.noteDetected.whileTrue(rumble(RumbleType.kLeftRumble, 0.2))
+            //indexer.noteDetected.whileTrue(rumble(RumbleType.kRightRumble, 0.2))
 
             // Driver bindings:
             // Start button: Eject
@@ -100,24 +107,25 @@ class Controls(bot: RobotContainer) {
             leftBumper().whileTrue(com.intakeUntilNote())
             // Right bumper: Shoot
             rightBumper().whileTrue(com.simpleShoot { plannedShootSpeed.speeds })
+            // These are unused:
             // Right trigger: Shoot but better!
-            rightTrigger().whileTrue(com.teleopShoot())
+            // rightTrigger().whileTrue(com.teleopShoot())
             // Left trigger: BETTER intake
-            leftTrigger().whileTrue(com.superIntake())
+            // leftTrigger().whileTrue(com.superIntake())
 
             fun Trigger.shootSpeed(s: ShootingSpeed) = onTrue(runOnce({ plannedShootSpeed = s }))
             // A: AMP
             a().shootSpeed(ShootingSpeed.AMP)
             // B: Shooter NEW SUBWOOFER
-            b().shootSpeed(ShootingSpeed.SUBWOOFER)
 
-            y().shootSpeed(ShootingSpeed.AUTOSHOT)
-
-            // Unused:
-            // Y: Shooter PASS/SHUTTLE
-            y().shootSpeed(ShootingSpeed.FARTHERSHOT)
-            // X: Shooter OLD SUBWOOFER
-            x().shootSpeed(ShootingSpeed.OLDSUBWOOFER)
+            if (outreachMode) {
+                b().shootSpeed(ShootingSpeed.OUTREACHSHOT1)
+                y().shootSpeed(ShootingSpeed.OUTREACHSHOT2)
+            } else {
+                b().shootSpeed(ShootingSpeed.SUBWOOFER)
+                y().shootSpeed(ShootingSpeed.AUTOSHOT)
+                x().shootSpeed(ShootingSpeed.OLDSUBWOOFER)
+            }
         }
     }
 
@@ -126,7 +134,8 @@ class Controls(bot: RobotContainer) {
         with(joystick) {
             leftBumper().onTrue(runOnce(SignalLogger::start))
             rightBumper().onTrue(runOnce(SignalLogger::stop))
-            a().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kForward))
+            a().whileTrue(Commands.print("starting a").andThen(
+                routine.quasistatic(SysIdRoutine.Direction.kForward)))
             b().whileTrue(routine.quasistatic(SysIdRoutine.Direction.kReverse))
             x().whileTrue(routine.dynamic(SysIdRoutine.Direction.kForward))
             y().whileTrue(routine.dynamic(SysIdRoutine.Direction.kReverse))

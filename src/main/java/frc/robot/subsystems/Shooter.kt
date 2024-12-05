@@ -1,6 +1,7 @@
 package frc.robot.subsystems
 
 import com.ctre.phoenix6.configs.TalonFXConfiguration
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC
 import com.ctre.phoenix6.controls.VelocityVoltage
 import com.ctre.phoenix6.hardware.TalonFX
 import com.ctre.phoenix6.signals.InvertedValue
@@ -28,9 +29,9 @@ class Shooter : SubsystemBase() {
                 Inverted = InvertedValue.Clockwise_Positive
             }
             Slot0.apply {
-                kS = 0.195
-                kV = 0.126
-                kP = 0.4
+                kS = 0.15545
+                kV = 0.12693
+                kP = 0.19241
             }
         })
     }
@@ -41,16 +42,16 @@ class Shooter : SubsystemBase() {
                 Inverted = InvertedValue.Clockwise_Positive
             }
             Slot0.apply {
-                kS = 0.195
-                kV = 0.126
-                kP = 0.4
+                kS = 0.10585
+                kV = 0.12615
+                kP = 0.19302
             }
         })
     }
     private val controlTop = VelocityVoltage(0.0)
     private val controlBottom = VelocityVoltage(0.0)
 
-    val sysIdRoutine = sysIdSingleMotor(this, topMotor)
+    val sysIdRoutine = sysIdSingleMotor(this, bottomMotor)
 
     init {
         defaultCommand = stopCmd()
@@ -71,12 +72,12 @@ class Shooter : SubsystemBase() {
                 (bottomMotor.velocity.valueAsDouble - lastSetBottom).absoluteValue < SPEED_TOL
 
 
-    private var lastSetTop = 0.0;
-    private var lastSetBottom = 0.0;
+    private var lastSetTop = 0.0
+    private var lastSetBottom = 0.0
 
     fun runWithSpeed(speed: Speeds) {
-        lastSetTop = speed.top / 60;
-        lastSetBottom = speed.bottom / 60;
+        lastSetTop = speed.top / 60
+        lastSetBottom = speed.bottom / 60
         topMotor.setControl(controlTop.apply { Velocity = lastSetTop })
         bottomMotor.setControl(controlBottom.apply { Velocity = lastSetBottom })
     }
@@ -97,11 +98,14 @@ class Shooter : SubsystemBase() {
     enum class ShootingSpeed(var speeds: Speeds) {
         AMP(Speeds(400.0, 1000.0)),
         AUTOSHOT(Speeds(1700.0, 2500.0)),
+
         OLDSUBWOOFER(Speeds(1200.0, 3600.0)), // previously 1200/3200
         //OLDSUBWOOFER(Speeds(1200.0, 3250.0)),
         SUBWOOFER(Speeds(1800.0, 4050.0)),
         //LINESHOT(Speeds(4000.0, 1800.0)),
-        FARTHERSHOT(Speeds(3200.0, 2200.0));
+        FARTHERSHOT(Speeds(3200.0, 2200.0)),
+        OUTREACHSHOT1(Speeds(700.0, 1400.0)),
+        OUTREACHSHOT2(Speeds(2000.0, 1000.0));
 
         data class Speeds(val top: Double, val bottom: Double)
     }

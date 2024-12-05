@@ -23,20 +23,33 @@ import org.photonvision.EstimatedRobotPose
 
 class RobotContainer(var bot: Robot) {
     // Subsystems
-    val shooter: Shooter = Shooter()
-    val indexer: Indexer = Indexer()
-    val intake: Intake = Intake()
-    val drivetrain: CommandSwerveDrivetrain = createDrivetrain()
+    val shooter = Shooter()
+    val indexer = Indexer()
+    val intake = Intake()
+    val drivetrain = createDrivetrain()
 
     // Other things
-    private val vision: Vision = Vision()
-    private val routine: SysIdRoutine? = null // drivetrain.sysId.routineToApply;
+    private val vision = Vision()
+    private val routine: SysIdRoutine? = shooter.sysIdRoutine//null // drivetrain.sysId.routineToApply;
     private val doSysId = false
     val logger = Telemetry(CommandSwerveDrivetrain.MAX_SPEED)
 
     // Other necessary things
-    val com: CommonCommands = CommonCommands(this)
+    val com = CommonCommands(this)
     private val controls = Controls(this)
+    // Make outreach mode easier to access from other subsystems
+    companion object {
+        private var instance: RobotContainer? = null
+        //val outreachMode
+        //    get() = instance?.controls?.outreachMode == true
+        val voltageMultiplier = 1.0
+            //get() = if (outreachMode) 0.9 else 1.0
+
+
+    }
+    init {
+        instance = this
+    }
 
     private val chooser: SendableChooser<Command>
     val autonomousCommand: Command
